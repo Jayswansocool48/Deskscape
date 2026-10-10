@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2026 Jayswansocool48 -->
+<component type="desktop-application">
+  <id>io.github.jayswansocool48.Deskscape</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+
+  <name>Deskscape</name>
+  <summary>Live 3D wallpaper with widgets, like Wallpaper Engine</summary>
+  <developer id="io.github.jayswansocool48">
+    <name>Jayswansocool48</name>
+  </developer>
+
+  <description>
+    <p>
+      Deskscape is a live wallpaper engine for the COSMIC desktop. It replaces your wallpaper with a
+      living 3D scene: add widgets and an app launcher, drop in 3D objects, and let the camera follow
+      your mouse like the main menu of a game. Your windows stay on top as usual.
+    </p>
+    <ul>
+      <li>Camera that moves with your mouse: parallax, orbit or fixed</li>
+      <li>3D shapes or your own .glb models, with glass, metal, glowing and cartoon materials</li>
+      <li>Objects can spin, float, turn toward the mouse, be grabbed and spun, or open an app when clicked</li>
+      <li>22 widgets: clock, world clocks, countdown, focus timer, calendar, dock, app launcher, search, quick links, system monitor, live graphs, now playing, moon phase, notes, to-do list, quotes, photo slideshow and more</li>
+      <li>Frosted glass, liquid glass, neon and outline widget styles</li>
+      <li>Full-screen app drawer with search and categories, plus a magnifying dock</li>
+      <li>Restyle COSMIC's real panel and dock: seven taskbar layouts, applets, pinned apps, colors and auto-hide, with one-click restore</li>
+      <li>Turn on COSMIC's frosted glass windows, panel and menus</li>
+      <li>Interface sounds and ten ambient soundscapes, from rain and fireplace to deep space</li>
+      <li>Animated aurora and flowing backgrounds, images or looping videos, plus stars, snow, rain, fireflies and bubbles</li>
+      <li>20 ready-made looks, from Sunflower Field and Above the Clouds to Cyber HUD and Galaxy, each with its own soundscape, plus your own saved looks</li>
+      <li>Right-click the desktop for quick actions, and hold Alt to drag widgets</li>
+      <li>Use your own sound files for interface sounds and the background</li>
+      <li>Pauses while a window is maximized or while you use an app, like Wallpaper Engine</li>
+      <li>Real 360° skies and free 3D models from Poly Haven's CC0 library (optional), or your own 360° photos</li>
+      <li>Design COSMIC's lock screen: your scene or a picture, a message, the clock style and your profile picture</li>
+      <li>No accounts, ads or tracking; offline unless you use the online library</li>
+    </ul>
+    <p>
+      Deskscape is made for the COSMIC desktop on Pop!_OS and works on other Wayland desktops that
+      support layer-shell. On other desktops it opens in a normal window.
+    </p>
+  </description>
+
+  <launchable type="desktop-id">io.github.jayswansocool48.Deskscape.desktop</launchable>
+  <provides>
+    <binary>deskscape</binary>
+  </provides>
+
+  <url type="homepage">https://github.com/Jayswansocool48/Deskscape</url>
+  <url type="bugtracker">https://github.com/Jayswansocool48/Deskscape/issues</url>
+  <url type="vcs-browser">https://github.com/Jayswansocool48/Deskscape</url>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>A Galaxy desktop with liquid glass widgets and a dock</caption>
+      <image>https://raw.githubusercontent.com/Jayswansocool48/Deskscape/main/docs/screenshots/desktop.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>The Aurora preset: animated northern lights and snow</caption>
+      <image>https://raw.githubusercontent.com/Jayswansocool48/Deskscape/main/docs/screenshots/aurora.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>The full-screen app drawer</caption>
+      <image>https://raw.githubusercontent.com/Jayswansocool48/Deskscape/main/docs/screenshots/drawer.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>The Sunset Drive preset</caption>
+      <image>https://raw.githubusercontent.com/Jayswansocool48/Deskscape/main/docs/screenshots/sunset.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Taskbar layouts for COSMIC's real panel and dock</caption>
+      <image>https://raw.githubusercontent.com/Jayswansocool48/Deskscape/main/docs/screenshots/cosmic.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>The Cyber HUD preset with live graphs</caption>
+      <image>https://raw.githubusercontent.com/Jayswansocool48/Deskscape/main/docs/screenshots/cyber.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Choosing a preset in the editor</caption>
+      <image>https://raw.githubusercontent.com/Jayswansocool48/Deskscape/main/docs/screenshots/editor.png</image>
+    </screenshot>
+  </screenshots>
+
+  <branding>
+    <color type="primary" scheme_preference="light">#ffd7a3</color>
+    <color type="primary" scheme_preference="dark">#2a1240</color>
+  </branding>
+
+  <categories>
+    <category>Utility</category>
+    <category>Settings</category>
+  </categories>
+  <keywords>
+    <keyword>wallpaper</keyword>
+    <keyword>widgets</keyword>
+    <keyword>3D</keyword>
+    <keyword>desktop</keyword>
+    <keyword>customize</keyword>
+    <keyword>taskbar</keyword>
+    <keyword>panel</keyword>
+    <keyword>dock</keyword>
+    <keyword>ambient</keyword>
+  </keywords>
+
+  <requires>
+    <display_length compare="ge">768</display_length>
+  </requires>
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </supports>
+
+  <content_rating type="oars-1.1" />
+
+  <releases>
+    <release version="1.2.0" date="2026-10-10">
+      <description>
+        <p>Everything in Deskscape so far.</p>
+        <ul>
+          <li>Live 3D wallpaper with a mouse-driven camera, 360° skies, 3D objects and models, flower fields, particles and animated backgrounds</li>
+          <li>22 widgets you can move right on the desktop, a magnifying dock and a full-screen app drawer</li>
+          <li>Right-click the desktop for quick actions</li>
+          <li>Restyles COSMIC's real panel, dock, applets, pinned apps, glass and windows, with one-click restore</li>
+          <li>Design your lock screen: picture, message, clock style and profile picture</li>
+          <li>Pauses while the app you're using is maximized or full screen, like Wallpaper Engine</li>
+          <li>Interface sounds, ten soundscapes, and your own sound files</li>
+          <li>20 ready-made looks, plus your own saved looks</li>
+        </ul>
+      </description>
+    </release>
+  </releases>
+</component>

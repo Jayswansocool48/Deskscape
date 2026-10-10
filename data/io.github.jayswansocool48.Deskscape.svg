@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <title>Deskscape</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b1430"/>
+      <stop offset="1" stop-color="#3a1a55"/>
+    </linearGradient>
+    <linearGradient id="gem" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffc27a"/>
+      <stop offset="1" stop-color="#ff7a2e"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="112" height="112" rx="26" fill="url(#bg)"/>
+  <g stroke="#ff4fd8" stroke-opacity=".5" stroke-width="1.5">
+    <path d="M14 98h100M20 106h88M8 90h112"/>
+    <path d="M64 84 34 120M64 84 94 120M64 84v36" />
+  </g>
+  <path d="M64 22 88 46 64 82 40 46Z" fill="url(#gem)"/>
+  <path d="M64 22 88 46H40Z" fill="#fff" fill-opacity=".35"/>
+  <path d="M64 82 88 46H64Z" fill="#000" fill-opacity=".12"/>
+  <rect x="80" y="18" width="30" height="18" rx="5" fill="#fff" fill-opacity=".14" stroke="#fff" stroke-opacity=".35"/>
+  <circle cx="30" cy="30" r="2" fill="#ffd7a3"/><circle cx="102" cy="64" r="1.5" fill="#ffd7a3"/><circle cx="22" cy="66" r="1.5" fill="#ffd7a3"/>
+</svg>

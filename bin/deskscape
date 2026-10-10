@@ -1,0 +1,18 @@
+#!/bin/sh
+# Starts Deskscape, installed (/usr/lib/deskscape) or from the source folder.
+SELF=$(readlink -f "$0")
+APPDIR=$(dirname "$(dirname "$SELF")")
+[ -d "$APPDIR/deskscape" ] || APPDIR=/usr/lib/deskscape
+
+# The bundled gtk4-layer-shell (Pop!_OS 24.04 doesn't ship it); a source checkout uses
+# the one built by tools/build-deb.sh if present.
+for dir in "$APPDIR/lib" "$APPDIR"/build/layer-shell-*/lib; do
+  if [ -f "$dir/libgtk4-layer-shell.so.0" ]; then
+    export LD_LIBRARY_PATH="$dir${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+    export GI_TYPELIB_PATH="$dir/girepository-1.0${GI_TYPELIB_PATH:+:$GI_TYPELIB_PATH}"
+    break
+  fi
+done
+
+export PYTHONPATH="$APPDIR${PYTHONPATH:+:$PYTHONPATH}"
+exec python3 -m deskscape "$@"
