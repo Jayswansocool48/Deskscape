@@ -2,6 +2,7 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { GLTFLoader } from '../vendor/addons/GLTFLoader.js';
 import { RGBELoader } from '../vendor/addons/RGBELoader.js';
+import { mergeGeometries } from '../vendor/addons/BufferGeometryUtils.js';
 
 const tmpV = new THREE.Vector3();
 const UP = new THREE.Vector3(0, 1, 0);
@@ -76,6 +77,12 @@ export class SceneView {
     const pKey = JSON.stringify(s.particles), fKey = JSON.stringify(s.floor);
     if (pKey !== this.pKey) { this.pKey = pKey; this.buildParticles(s.particles); }
     if (fKey !== this.fKey) { this.fKey = fKey; this.buildFloor(s.floor); }
+    const fieldShape = JSON.stringify({ type: s.field?.type, count: s.field?.count });
+    if (fieldShape !== this.fieldKey) { this.fieldKey = fieldShape; this.buildField(s.field || {}); }
+    if (this.field) {
+      this.field.userData.ground.material.color.set(s.field.ground || '#3d5a1e');
+      this.fieldUniforms.uWind.value = s.field.wind ?? 1;
+    }
     this.syncObjects(cfg.objects);
   }
 
@@ -150,6 +157,61 @@ export class SceneView {
     this.particles = new THREE.Points(geo, mat);
     this.particles.userData = { speed: p.speed, style: p.style || 'dust', seed };
     this.scene.add(this.particles);
+  }
+
+  /** A field of sunflowers, wildflowers or tall grass, made in code and swaying in the wind. */
+  buildField(f) {
+    if (this.field) {
+      this.scene.remove(this.field);
+      this.field.traverse(o => { o.geometry?.dispose(); if (o.material && !o.material.userData.shared) o.material.dispose(); });
+      this.field = null;
+    }
+    if (!f.type || f.type === 'none') return;
+    this.fieldUniforms ||= { uTime: { value: 0 }, uWind: { value: 1 } };
+    const group = new THREE.Group();
+    const ground = new THREE.Mesh(new THREE.CircleGeometry(90, 48), new THREE.MeshStandardMaterial({ color: f.ground || '#3d5a1e', roughness: 1 }));
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = FIELD_Y;
+    group.add(ground);
+    group.userData.ground = ground;
+    const count = Math.max(50, Math.min(6000, f.count | 0));
+    const parts = FIELD_PARTS[f.type]();
+    const matrices = [];
+    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), sc = new THREE.Vector3();
+    for (let i = 0; i < count; i++) {
+      // denser and wider toward the horizon, a clear patch right in front of the camera
+      const z = 4 - Math.pow(Math.random(), 0.7) * 60;
+      const spread = 9 + (4 - z) * 0.9;
+      const x = (Math.random() - 0.5) * 2 * spread;
+      if (z > -1 && Math.abs(x) < 3.5) { i--; continue; }
+      const size = parts.size * (0.75 + Math.random() * 0.5);
+      e.set((Math.random() - 0.5) * 0.12, (Math.random() - 0.5) * parts.turn, (Math.random() - 0.5) * 0.12);
+      m.compose(v.set(x, FIELD_Y, z), q.setFromEuler(e), sc.set(size, size * (0.85 + Math.random() * 0.3), size));
+      matrices.push(m.clone());
+    }
+    for (const part of parts.meshes) {
+      const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8, side: THREE.DoubleSide });
+      mat.onBeforeCompile = shader => {
+        Object.assign(shader.uniforms, this.fieldUniforms);
+        shader.vertexShader = 'uniform float uTime; uniform float uWind;\n' + shader.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+          float h = max(position.y, 0.0);
+          vec3 base = instanceMatrix[3].xyz;
+          float gust = sin(uTime * 0.6 + base.x * 0.05 + base.z * 0.04) * 0.5 + 0.5;
+          float sway = sin(uTime * 1.7 + base.x * 0.4 + base.z * 0.3) * (0.03 + 0.05 * gust) * uWind * h * h;
+          transformed.x += sway;
+          transformed.z += sway * 0.35;`);
+      };
+      const mesh = new THREE.InstancedMesh(part.geometry, mat, matrices.length);
+      matrices.forEach((mx, i) => mesh.setMatrixAt(i, mx));
+      if (part.colors) {
+        const c = new THREE.Color();
+        for (let i = 0; i < matrices.length; i++) mesh.setColorAt(i, c.set(part.colors[Math.floor(Math.random() * part.colors.length)]));
+      }
+      mesh.frustumCulled = false;
+      group.add(mesh);
+    }
+    this.field = group;
+    this.scene.add(group);
   }
 
   buildFloor(f) {
@@ -428,6 +490,7 @@ export class SceneView {
     }
     for (const m of this.holoMaterials) m.uniforms.uTime.value = t;
     if (this.floor && !still) this.floor.position.z = (t * 1.2) % 2;
+    if (this.field && !still) this.fieldUniforms.uTime.value = t;
     if (this.selectionBox.visible) this.updateSelectionBox();
     this.renderer.render(this.scene, this.camera);
   }
@@ -578,6 +641,95 @@ function buildEnvironment(renderer) {
   pmrem.dispose();
   return tex;
 }
+
+// ---- fields of flowers and grass ---------------------------------------------------------
+const FIELD_Y = -2.4;
+
+/** Paints every vertex of a geometry one color (fields use vertex colors so one mesh holds many parts). */
+function painted(geo, hex, top) {
+  const g = geo.index ? geo.toNonIndexed() : geo;
+  const c = new THREE.Color(hex), c2 = new THREE.Color(top || hex);
+  const pos = g.attributes.position;
+  let minY = Infinity, maxY = -Infinity;
+  for (let i = 0; i < pos.count; i++) { minY = Math.min(minY, pos.getY(i)); maxY = Math.max(maxY, pos.getY(i)); }
+  const colors = new Float32Array(pos.count * 3);
+  const tmp = new THREE.Color();
+  for (let i = 0; i < pos.count; i++) {
+    tmp.copy(c).lerp(c2, maxY > minY ? (pos.getY(i) - minY) / (maxY - minY) : 0);
+    colors.set([tmp.r, tmp.g, tmp.b], i * 3);
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  g.deleteAttribute('uv');
+  return g;
+}
+
+function flowerHead({ petals, petalW, petalL, radius, disc, discColor, petalColor, y, tilt }) {
+  const pieces = [];
+  for (let i = 0; i < petals; i++) {
+    const a = (i / petals) * Math.PI * 2;
+    const p = new THREE.PlaneGeometry(petalW, petalL, 1, 2);
+    p.translate(0, radius + petalL / 2, 0);
+    p.rotateX(0.18 * (i % 2 ? 1 : -1)); // a slight cup, alternating rows
+    p.rotateZ(a);
+    pieces.push(painted(p, petalColor));
+  }
+  const d = new THREE.CylinderGeometry(disc, disc * 0.9, disc * 0.35, 18);
+  d.rotateX(Math.PI / 2);
+  pieces.push(painted(d, discColor));
+  const head = mergeGeometries(pieces);
+  head.rotateX(-tilt);
+  head.translate(0, y, 0.05);
+  return head;
+}
+
+function stemAndLeaves(height, stemColor, leafColor, leaves) {
+  const pieces = [];
+  const stem = new THREE.CylinderGeometry(0.022, 0.034, height, 5, 4);
+  stem.translate(0, height / 2, 0);
+  pieces.push(painted(stem, stemColor));
+  for (let i = 0; i < leaves; i++) {
+    const leaf = new THREE.PlaneGeometry(0.34, 0.14, 2, 1);
+    leaf.translate(0.17, 0, 0);
+    leaf.rotateZ(0.35);
+    leaf.rotateY(i * 2.3);
+    leaf.translate(0, height * (0.3 + 0.45 * (i / Math.max(1, leaves - 1))), 0);
+    pieces.push(painted(leaf, leafColor));
+  }
+  return mergeGeometries(pieces);
+}
+
+function grassTuft(blades, height, spread) {
+  const parts = [];
+  for (let i = 0; i < blades; i++) {
+    const b = new THREE.ConeGeometry(0.035, height, 3, 3, true);
+    b.translate(0, height / 2, 0);
+    b.rotateZ((Math.random() - 0.5) * 0.5);
+    b.translate((Math.random() - 0.5) * spread, 0, (Math.random() - 0.5) * spread);
+    parts.push(painted(b, '#2f4f17', '#a7c45a'));
+  }
+  return mergeGeometries(parts);
+}
+
+const FIELD_PARTS = {
+  sunflowers: () => ({
+    size: 1, turn: 0.7,
+    meshes: [
+      { geometry: stemAndLeaves(1.75, '#3e6b20', '#4f8a2a', 3) },
+      { geometry: flowerHead({ petals: 22, petalW: 0.1, petalL: 0.26, radius: 0.15, disc: 0.17, discColor: '#4a2a10', petalColor: '#ffffff', y: 1.78, tilt: 0.3 }),
+        colors: ['#f7c51e', '#f5b70f', '#ffd23a', '#f2a90c'] },
+    ],
+  }),
+  wildflowers: () => ({
+    size: 0.95, turn: 3,
+    meshes: [
+      { geometry: grassTuft(4, 0.55, 0.45) },
+      { geometry: stemAndLeaves(0.9, '#4b7a2a', '#5c9234', 2) },
+      { geometry: flowerHead({ petals: 6, petalW: 0.08, petalL: 0.12, radius: 0.04, disc: 0.05, discColor: '#f2d45c', petalColor: '#ffffff', y: 0.92, tilt: 1.1 }),
+        colors: ['#ffffff', '#f7a8d8', '#b48cf2', '#ffd447', '#ff7a6b', '#8fb8ff'] },
+    ],
+  }),
+  grass: () => ({ size: 1.1, turn: 3, meshes: [{ geometry: grassTuft(5, 1, 0.3) }] }),
+};
 
 let HALO;
 function haloTexture() {

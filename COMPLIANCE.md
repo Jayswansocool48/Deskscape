@@ -33,7 +33,7 @@ The Pop!_OS project checklist. Deskscape is a free desktop app (offline unless y
 | 12 | Remove unsupported claims | ✅ | README and store listing describe only features that exist; notes that desktop mode needs layer-shell |
 | 13 | Accessibility alt text | ✅ | App buttons labeled "Open <app>", star buttons labeled "Pin/Unpin <app>", applet and pinned-app buttons labeled ("Move Sound earlier", "Unpin Files"), taskbar layout cards described, image widget has a description field, slideshow thumbnails labeled, moon and clock SVGs labeled, decorative graphics hidden from screen readers |
 | 14 | Fix color contrast | ✅ | Editor uses a fixed high-contrast palette and warns when widget text vs card contrast is under 4.5:1 |
-| 15 | Keyboard navigation | ✅ | Ctrl+E editor, Ctrl+Space app drawer, Esc closes, arrow keys between editor tabs, switches and segmented buttons are real buttons/checkboxes, visible focus rings, Enter opens the top search result |
+| 15 | Keyboard navigation | ✅ | Ctrl+E editor, Ctrl+Space app drawer, Esc closes, Ctrl+Z brings back a removed widget, the right-click menu works with arrow keys, Enter and Esc (menu key / Shift+F10 opens it), arrow keys between editor tabs, switches and segmented buttons are real buttons/checkboxes, visible focus rings, Enter opens the top search result |
 | 16 | Add business details | ✅ | Publisher and contact in `TERMS.md`, `PRIVACY.md` the store listing (`<developer>`) and the package metadata |
 | 17 | Age consent for kids' data | ✅ N/A | No personal data collected from anyone; store content rating OARS: none |
 | 18 | Unsubscribe link in emails | ✅ N/A | Sends no emails |

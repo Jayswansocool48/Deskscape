@@ -116,6 +116,55 @@ export const PRESETS = {
     }),
   },
 
+  'Sunflower Field': {
+    tagline: 'Thousands of sunflowers swaying under a real 360° summer sky',
+    swatch: ['#7fb3e0', '#f7c51e', '#3e6b20'],
+    sky: { id: 'kloofendal_48d_partly_cloudy_puresky', name: 'Kloofendal Partly Cloudy Sky', look: { blur: 0, brightness: 1.05, lighting: 1, rotation: 120 } },
+    taskbar: { layout: 'islands', look: { isDark: false, frostedPanel: true, panel: { background: 'Light', opacity: 0.5 }, dock: { background: 'Light', opacity: 0.5 } } },
+    build: () => ({
+      scene: scene({
+        background: { type: 'gradient', color1: '#5d9bd6', color2: '#dcecf7', angle: 180 },
+        fog: { enabled: true, color: '#d6e6ef', density: 0.018 },
+        particles: { style: 'dust', count: 260, color: '#ffe58a', size: 0.04, speed: 0.12 },
+        light: { ambient: 0.75, color: '#fff2d6', intensity: 2.6, rim: '#ffd27a' }, overlay: { vignette: 0.12, grain: 0.02 },
+        field: { type: 'sunflowers', count: 1800, wind: 1, ground: '#4b5e22' },
+        sound: 'forest',
+      }),
+      camera: camera({ mode: 'parallax', strength: 0.8, smoothing: 0.03, fov: 55, distance: 9 }),
+      objects: [],
+      widgets: [
+        wid('clock', { x: 5, y: 9, card: false, depth: 0.6, settings: { size: 110 }, w: 440, h: 170 }),
+        wid('date', { x: 5, y: 28, card: false, depth: 0.5 }),
+        wid('nowplaying', { x: 75, y: 9, depth: 0.35 }),
+      ],
+      theme: theme({ cardStyle: 'liquid', font: 'rounded', widgetBg: '#2d3a16', widgetOpacity: 0.35, text: '#ffffff', accent: '#ffd23a', widgetMotion: '3d' }),
+    }),
+  },
+
+  'Wildflower Meadow': {
+    tagline: 'A soft meadow of little flowers, birdsong and a breeze',
+    swatch: ['#a9d3f0', '#f7a8d8', '#5c9234'],
+    taskbar: { layout: 'islands', look: { isDark: false, frostedPanel: true, panel: { background: 'Light', opacity: 0.55 }, dock: { background: 'Light', opacity: 0.55 } } },
+    build: () => ({
+      scene: scene({
+        background: { type: 'gradient', color1: '#8cc4ec', color2: '#f3e9f2', angle: 180 },
+        fog: { enabled: true, color: '#eef0f3', density: 0.02 },
+        particles: { style: 'bubbles', count: 120, color: '#ffffff', size: 0.05, speed: 0.08 },
+        light: { ambient: 0.85, color: '#fff6ea', intensity: 2.2, rim: '#ffd0e8' }, overlay: { vignette: 0.1, grain: 0.02 },
+        field: { type: 'wildflowers', count: 3800, wind: 1.3, ground: '#5f7f2c' },
+        sound: 'forest',
+      }),
+      camera: camera({ mode: 'parallax', strength: 0.7, smoothing: 0.03, fov: 50, distance: 9 }),
+      objects: [],
+      widgets: [
+        wid('clock', { x: 6, y: 10, card: false, settings: { format: '12', size: 100 }, w: 420, h: 160 }),
+        wid('date', { x: 6, y: 28, card: false }),
+        wid('todo', { x: 76, y: 10 }),
+      ],
+      theme: theme({ cardStyle: 'liquid', font: 'serif', widgetBg: '#ffffff', widgetOpacity: 0.55, text: '#2d3320', accent: '#d6457a', textShadow: false }),
+    }),
+  },
+
   'Aurora': {
     tagline: 'Northern lights, snow and liquid glass',
     swatch: ['#03141c', '#1de9b6', '#7c4dff'],

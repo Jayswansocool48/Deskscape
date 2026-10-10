@@ -767,12 +767,15 @@ export class WidgetLayer {
       node.classList.remove('tilting');
     });
     node.addEventListener('pointerdown', e => {
-      if (!this.editMode || e.button !== 0) return;
+      // In the editor or "Move widgets" mode, or anytime with Alt held down: drag to move.
+      if (e.button !== 0 || !(this.editMode || e.altKey)) return;
       e.preventDefault();
+      e.stopPropagation();
       const id = node.dataset.id;
-      this.cb.onSelect?.(id);
+      if (this.editMode) this.cb.onSelect?.(id);
       const w = this.cfg.widgets.find(x => x.id === id);
-      const resizing = e.target.classList.contains('resize-handle');
+      const resizing = this.editMode && e.target.classList.contains('resize-handle');
+      node.classList.add('dragging');
       const start = { x: e.clientX, y: e.clientY, wx: w.x, wy: w.y, ww: w.w, wh: w.h };
       node.setPointerCapture(e.pointerId);
       const move = ev => {
@@ -789,6 +792,7 @@ export class WidgetLayer {
         node.removeEventListener('pointermove', move);
         node.removeEventListener('pointerup', up);
         node.removeEventListener('pointercancel', up);
+        node.classList.remove('dragging');
         const patch = resizing
           ? { w: Math.round(parseFloat(node.style.width)), h: Math.round(parseFloat(node.style.height)) }
           : { x: round1(parseFloat(node.style.left)), y: round1(parseFloat(node.style.top)) };

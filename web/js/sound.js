@@ -6,7 +6,11 @@ export const SOUND_PACKS = { glass: 'Glass (bells)', soft: 'Soft (muted)', retro
 export const SOUNDSCAPES = {
   none: 'None', rain: 'Rain', ocean: 'Ocean waves', wind: 'Wind', fire: 'Fireplace', forest: 'Forest birds',
   space: 'Deep space', cyber: 'Cyber hum', chimes: 'Wind chimes', night: 'Night crickets',
+  custom: 'My own sound file (loops)',
 };
+/** Interface sounds you can replace with your own files. */
+export const CUSTOM_SOUNDS = { click: 'Clicks', open: 'Opening and closing', launch: 'Opening an app', notify: 'Done / success', chime: 'Focus timer chime' };
+const CUSTOM_FOR = { click: 'click', hover: 'click', toggleOn: 'click', toggleOff: 'click', type: 'click', open: 'open', close: 'open', launch: 'launch', success: 'notify', notify: 'notify', error: 'notify', chime: 'chime' };
 
 // Notes for each interface event: [semitones above the pack's root, start (s), length (s), loudness]
 const EVENTS = {
@@ -32,6 +36,8 @@ export class SoundEngine {
     this.ctx = null;
     this.settings = { ui: true, pack: 'glass', volume: 0.45, hover: false, ambient: false, ambientVolume: 0.35, pauseForMusic: true };
     this.scape = 'none';
+    this.scapeUrl = '';
+    this.buffers = new Map(); // url -> Promise<AudioBuffer>
     this.running = null; // { name, stop() }
     this.ducked = false;
     this.paused = false;
@@ -42,9 +48,10 @@ export class SoundEngine {
   }
 
   /** settings: cfg.general.sound; scape: the scene's soundscape; primary: only one monitor plays ambience. */
-  configure(settings, scape, primary) {
+  configure(settings, scape, primary, scapeUrl = '') {
     this.settings = { ...this.settings, ...(settings || {}) };
     this.scape = scape || 'none';
+    this.scapeUrl = scapeUrl || '';
     this.primary = primary;
     if (this.ctx) {
       this.ui.gain.setTargetAtTime(this.settings.volume, this.ctx.currentTime, 0.05);
@@ -80,7 +87,7 @@ export class SoundEngine {
   }
 
   ambientLevel() {
-    return this.settings.ambient && !this.ducked ? this.settings.ambientVolume * 0.9 : 0;
+    return this.settings.ambient && !this.ducked && !this.settings.muted ? this.settings.ambientVolume * 0.9 : 0;
   }
 
   /** Quiet the soundscape while music plays (and bring it back after). */
@@ -92,16 +99,49 @@ export class SoundEngine {
   }
 
   play(event) {
-    if ((!this.settings.ui && event !== 'chime') || this.settings.volume <= 0) return; // the timer's chime is an alarm, so it always plays
+    if (this.settings.muted || (!this.settings.ui && event !== 'chime') || this.settings.volume <= 0) return; // the timer's chime is an alarm, so it plays unless muted
     if (event === 'hover' && !this.settings.hover) return;
     const notes = EVENTS[event];
     if (!notes) return;
     const c = this.ensure();
     if (!c || c.state !== 'running') { c?.resume().catch(() => null); if (c?.state !== 'running') return; }
+    const own = this.settings.custom?.[CUSTOM_FOR[event]];
+    if (own) {
+      // your own sound file instead of the built-in one (quieter for hovers)
+      this.buffer(own).then(buf => this.playBuffer(buf, event === 'hover' ? 0.3 : 1)).catch(() => null);
+      return;
+    }
     const pack = ROOT[this.settings.pack] ? this.settings.pack : 'glass';
     const t0 = c.currentTime + 0.005;
     for (const [semi, at, len, loud] of notes) voice(c, pack, ROOT[pack] * 2 ** (semi / 12), t0 + at, len, loud, this.ui);
     if (WHOOSH[event] && pack !== 'retro') whoosh(c, t0, ...WHOOSH[event], 0.35, this.ui);
+  }
+
+  buffer(url) {
+    if (!this.buffers.has(url)) {
+      const c = this.ensure();
+      this.buffers.set(url, fetch(url).then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+        .then(data => c.decodeAudioData(data))
+        .catch(e => { this.buffers.delete(url); throw e; }));
+    }
+    return this.buffers.get(url);
+  }
+
+  playBuffer(buf, gain = 1) {
+    const c = this.ctx;
+    const src = c.createBufferSource();
+    src.buffer = buf;
+    const g = c.createGain();
+    g.gain.value = gain;
+    src.connect(g).connect(this.ui);
+    src.start();
+  }
+
+  /** Plays one of your own sound files once (for "Play" next to it in Settings). */
+  previewFile(url) {
+    const c = this.ensure();
+    c?.resume().catch(() => null);
+    return this.buffer(url).then(buf => this.playBuffer(buf));
   }
 
   /** While the wallpaper is paused, the soundscape stops (and comes back after). */
@@ -113,8 +153,24 @@ export class SoundEngine {
   /** A pretty preview of the soundscape volume or a pack, for the settings. */
   preview() { this.play('success'); }
 
+  /** Your own file as the soundscape, looping. */
+  customScape(c, out, url) {
+    let src = null;
+    let stopped = false;
+    this.buffer(url).then(buf => {
+      if (stopped) return;
+      src = c.createBufferSource();
+      src.buffer = buf;
+      src.loop = true;
+      src.connect(out);
+      src.start();
+    }).catch(() => null);
+    return () => { stopped = true; try { src?.stop(); } catch { /* not started */ } };
+  }
+
   refreshAmbient() {
-    const want = this.settings.ambient && this.primary && !this.paused && SOUNDSCAPES[this.scape] && this.scape !== 'none' ? this.scape : 'none';
+    let want = this.settings.ambient && !this.settings.muted && this.primary && !this.paused && SOUNDSCAPES[this.scape] && this.scape !== 'none' ? this.scape : 'none';
+    if (want === 'custom') want = this.scapeUrl ? 'custom:' + this.scapeUrl : 'none';
     if ((this.running?.name || 'none') === want) return;
     this.running?.stop();
     this.running = null;
@@ -127,7 +183,7 @@ export class SoundEngine {
     bus.gain.setTargetAtTime(1, c.currentTime, 1.2);
     bus.connect(this.amb);
     this.amb.gain.setTargetAtTime(this.ambientLevel(), c.currentTime, 0.4);
-    const stopInner = SCAPES[want](c, bus);
+    const stopInner = want.startsWith('custom:') ? this.customScape(c, bus, this.scapeUrl) : SCAPES[want](c, bus);
     this.running = {
       name: want,
       stop: () => {

@@ -28,7 +28,9 @@
       <li>Turn on COSMIC's frosted glass windows, panel and menus</li>
       <li>Interface sounds and ten ambient soundscapes, from rain and fireplace to deep space</li>
       <li>Animated aurora and flowing backgrounds, images or looping videos, plus stars, snow, rain, fireflies and bubbles</li>
-      <li>18 ready-made looks, from Above the Clouds and Aurora to Cyber HUD and Galaxy, each with its own soundscape</li>
+      <li>20 ready-made looks, from Sunflower Field and Above the Clouds to Cyber HUD and Galaxy, each with its own soundscape, plus your own saved looks</li>
+      <li>Right-click the desktop for quick actions, and hold Alt to drag widgets</li>
+      <li>Use your own sound files for interface sounds and the background</li>
       <li>Pauses while a window is maximized or while you use an app, like Wallpaper Engine</li>
       <li>Real 360° skies and free 3D models from Poly Haven's CC0 library (optional), or your own 360° photos</li>
       <li>Set COSMIC's lock screen to a picture of your scene</li>
@@ -112,6 +114,19 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="1.1.0" date="2026-10-10">
+      <description>
+        <p>Easier to use, your own sounds, and flower fields.</p>
+        <ul>
+          <li>Right-click the desktop for quick actions: add widgets, change the look, pause, mute, set the lock screen</li>
+          <li>Move widgets right on the desktop: hold Alt and drag, or choose Move widgets</li>
+          <li>Use your own sound files for clicks, opening apps, the timer and the background</li>
+          <li>Save your own looks and switch back to them any time</li>
+          <li>New Sunflower Field and Wildflower Meadow presets, and fields of flowers or grass for any scene</li>
+          <li>Fixed: the wallpaper could stay paused when nothing covered it; it now keeps running as soon as your mouse is on it</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.0" date="2026-10-10">
       <description>
         <p>First release.</p>

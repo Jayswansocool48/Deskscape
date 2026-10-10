@@ -120,6 +120,8 @@ export function defaultScene() {
     light: { ambient: 0.45, color: '#ffffff', intensity: 2.2, rim: '#7f5cff' },
     overlay: { vignette: 0.35, grain: 0.04 },
     sound: 'none', // the ambient soundscape that goes with this scene (plays only if turned on in Settings)
+    soundFile: '', // your own looping sound, when sound is 'custom'
+    field: { type: 'none', count: 1400, wind: 1, ground: '#3d5a1e' }, // a field of flowers or grass
   };
 }
 
@@ -130,7 +132,12 @@ export function defaultConfig() {
 function defaultGeneral() {
   return {
     reducedMotion: 'system', fps: 60, editorHint: true, drawerCorner: 'none', recent: [],
-    sound: { ui: true, pack: 'glass', volume: 0.4, hover: false, ambient: false, ambientVolume: 0.35, pauseForMusic: true },
+    sound: {
+      ui: true, pack: 'glass', volume: 0.4, hover: false, ambient: false, ambientVolume: 0.35, pauseForMusic: true, muted: false,
+      custom: { click: '', open: '', launch: '', notify: '', chime: '' }, // your own sound files
+    },
+    myLooks: [], // looks you saved: { id, name, thumb, data }
+    welcomed: false,
     matchTaskbar: 'ask',
     pauseWhen: 'maximized', // maximized · focused · never
     taskbarOnMaximize: true,
@@ -210,6 +217,7 @@ export const api = {
   libraryFetch: (kind, id, resolution) => call('POST', '/api/library/fetch', { kind, id, resolution }).then(d => d.url),
   lockscreen: () => call('GET', '/api/lockscreen').catch(() => ({ current: null })),
   setLockscreen: req => call('POST', '/api/lockscreen', { monitor: MONITOR, ...req }),
+  thumbnail: () => call('POST', '/api/thumbnail', { monitor: MONITOR }).then(d => d.url),
   cosmicLook: () => call('GET', '/api/cosmic-look').catch(() => ({ available: false })),
   setCosmicLook: changes => call('POST', '/api/cosmic-look', changes),
   restoreCosmicLook: () => call('POST', '/api/cosmic-look/restore'),

@@ -49,6 +49,8 @@ case "${1:-}" in
       deskscape --quit 2>/dev/null || true
       sleep 1
       timeout 15 deskscape 2>&1 | tail -30 || true
+      say "What Deskscape sees of your windows (8 seconds)"
+      deskscape --windows 2>&1 | tail -20 || true
       say "Deskscape log"
       deskscape --log | tail -30
     fi

@@ -25,6 +25,7 @@ MEDIA_TYPES = {
     ".glb", ".gltf",  # 3D models
     ".mp4", ".webm",  # video wallpapers
     ".hdr",  # 360° HDR skies
+    ".mp3", ".ogg", ".oga", ".opus", ".wav", ".flac", ".m4a",  # your own sounds
 }
 _SAFE_NAME = re.compile(r"^[a-f0-9]{32}\.[a-z0-9]{2,5}$")
 
@@ -33,6 +34,8 @@ mimetypes.add_type("model/gltf+json", ".gltf")
 mimetypes.add_type("text/javascript", ".js")
 mimetypes.add_type("image/webp", ".webp")
 mimetypes.add_type("image/vnd.radiance", ".hdr")
+for _ext, _type in ((".opus", "audio/ogg"), (".oga", "audio/ogg"), (".flac", "audio/flac"), (".m4a", "audio/mp4")):
+    mimetypes.add_type(_type, _ext)
 
 
 class DeskscapeServer:
@@ -344,6 +347,18 @@ def _make_handler(app):
                     return self._json({"url": library.fetch(req.get("kind", ""), req.get("id", ""), req.get("resolution", "2k"))})
                 except Exception as exc:
                     return self._json({"error": library.error_message(exc)}, 502)
+            if route == "/api/thumbnail":
+                # a small picture of the desktop as it looks now (for looks you save)
+                if not app.on_snapshot:
+                    return self._json({"error": "Only works in the Deskscape app"}, 400)
+                req = json.loads(body or b"{}")
+                name = uuid.uuid4().hex + ".png"
+                try:
+                    monitor = req.get("monitor") if isinstance(req.get("monitor"), int) else 0
+                    app.on_snapshot(monitor, True, paths.MEDIA_DIR / name, width=480)
+                except (RuntimeError, OSError) as exc:
+                    return self._json({"error": str(exc)}, 500)
+                return self._json({"url": "/media/" + name})
             if route == "/api/lockscreen":
                 try:
                     return self._json({"ok": True, "current": app.set_lockscreen(json.loads(body or b"{}"))})

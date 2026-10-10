@@ -4,7 +4,7 @@ import {
   PARTICLE_STYLES, presetConfig, SHAPES, STANDALONE, uid, WIDGET_GROUPS, WIDGET_TYPES,
 } from './config.js';
 import { PRESETS } from './presets.js';
-import { SOUND_PACKS, SOUNDSCAPES } from './sound.js';
+import { CUSTOM_SOUNDS, SOUND_PACKS, SOUNDSCAPES } from './sound.js';
 import { appletName, layoutPreview, presetTaskbar, TASKBAR_LAYOUTS } from './taskbar.js';
 
 const TABS = [
@@ -103,6 +103,13 @@ export class Editor {
 
   // ---- Look ---------------------------------------------------------------
   lookTab(body) {
+    if (!this.cfg.general.welcomed) {
+      const hi = section(body, 'Getting started');
+      hi.append(
+        el('p', 'note', 'Pick a look below to start. After that you rarely need this panel: right-click the desktop for quick actions (add widgets, change the look, pause, lock screen), and hold Alt to drag any widget around. Ctrl+E brings this panel back.'),
+      );
+    }
+    this.myLooksSection(body);
     const presets = section(body, 'Presets');
     const grid = el('div', 'preset-grid');
     for (const [name, p] of Object.entries(PRESETS)) {
@@ -206,6 +213,67 @@ export class Editor {
     }
   }
 
+  // ---- your own saved looks -------------------------------------------------------
+  myLooksSection(body) {
+    const looks = this.cfg.general.myLooks ||= [];
+    const s = section(body, 'My looks');
+    if (looks.length) {
+      const grid = el('div', 'preset-grid');
+      for (const look of looks) {
+        const card = el('div', 'preset my-look');
+        const pick = el('button', 'my-look-pick');
+        pick.type = 'button';
+        pick.setAttribute('aria-label', `Use your look ${look.name}`);
+        const thumb = el('div', 'preset-thumb');
+        thumb.style.background = 'linear-gradient(135deg, #2a2340, #11283a)';
+        if (look.thumb) { const img = document.createElement('img'); img.src = look.thumb; img.alt = ''; thumb.appendChild(img); }
+        pick.append(thumb, el('span', 'preset-name', look.name), el('span', 'preset-tag', new Date(look.saved).toLocaleDateString()));
+        pick.addEventListener('click', () => this.applyMyLook(look.id));
+        const del = button('×', () => {
+          if (!confirm(`Delete your look "${look.name}"?`)) return;
+          this.cfg.general.myLooks = looks.filter(l => l !== look);
+          this.commit(true);
+        }, 'my-look-del');
+        del.setAttribute('aria-label', `Delete ${look.name}`);
+        card.append(pick, del);
+        grid.appendChild(card);
+      }
+      s.appendChild(grid);
+    } else {
+      s.appendChild(el('p', 'hint', 'Made something you like? Save it here so you can come back to it after trying other looks.'));
+    }
+    const row = el('div', 'row actions');
+    row.appendChild(button('Save this look', () => this.saveMyLook(), 'primary'));
+    s.appendChild(row);
+  }
+
+  async saveMyLook() {
+    const name = (prompt('Name this look:', `My look ${(this.cfg.general.myLooks?.length || 0) + 1}`) || '').trim();
+    if (!name) return;
+    const { scene, camera, objects, widgets, theme } = this.cfg;
+    const look = { id: uid(), name: name.slice(0, 40), saved: Date.now(), thumb: '', data: clone({ scene, camera, objects, widgets, theme }) };
+    this.cb.toast('Saving your look…');
+    try { look.thumb = await api.thumbnail(); } catch { /* preview mode: no picture */ }
+    (this.cfg.general.myLooks ||= []).unshift(look);
+    this.commit(true);
+    this.cb.sound?.('success');
+    this.cb.toast(`Saved "${look.name}"`);
+  }
+
+  async applyMyLook(id) {
+    const look = (this.cfg.general.myLooks || []).find(l => l.id === id);
+    if (!look) return;
+    if (!confirm(`Switch to your look "${look.name}"? This replaces the current scene, 3D objects and widgets.`)) return;
+    const swap = () => {
+      Object.assign(this.cfg, normalizeConfig({ ...clone(look.data), general: this.cfg.general }), { presetName: look.name });
+      this.selectedObject = this.selectedWidget = null;
+      this.commit(true);
+    };
+    if (this.cb.transition) await this.cb.transition(swap); else swap();
+    this.cb.sound?.('success');
+    this.cb.toast(`${look.name} applied`);
+  }
+
   /** Presets with a real 360° sky download it from the online library (once, with your OK). */
   async fetchPresetSky(name, sky) {
     const g = this.cfg.general;
@@ -287,9 +355,25 @@ export class Editor {
     if (sc.fog.enabled) a.append(color('Fog color', sc.fog, 'color', () => this.commit()), range('Fog thickness', sc.fog, 'density', 0, 0.15, 0.005, () => this.commit()));
     a.append(toggle('Moving floor grid', sc.floor, 'enabled', () => this.commit(true)));
     if (sc.floor.enabled) a.append(color('Grid color', sc.floor, 'color', () => this.commit()));
+    const fld = section(body, 'Ground cover');
+    fld.append(select('Field of', sc.field, 'type', { none: 'Nothing', sunflowers: 'Sunflowers', wildflowers: 'Wildflowers', grass: 'Tall grass' }, () => this.commit(true)));
+    if (sc.field.type !== 'none') {
+      fld.append(
+        range('How many', sc.field, 'count', 200, 4000, 100, () => this.commit()),
+        range('Wind', sc.field, 'wind', 0, 3, 0.1, () => this.commit(), '×'),
+        color('Ground color', sc.field, 'ground', () => this.commit()),
+        el('p', 'hint', 'They sway in the wind and stretch off into the distance. Fewer is faster on older computers.'),
+      );
+    }
     const snd = section(body, 'Soundscape');
     const gs = this.cfg.general.sound;
-    snd.append(select('Ambient sound for this scene', sc, 'sound', SOUNDSCAPES, () => this.commit()));
+    snd.append(select('Ambient sound for this scene', sc, 'sound', SOUNDSCAPES, () => this.commit(true)));
+    if (sc.sound === 'custom') {
+      snd.append(
+        el('p', 'hint', sc.soundFile ? 'Playing your file on a loop.' : 'Choose a sound or music file (MP3, OGG, WAV, FLAC, M4A). It loops while the scene is showing.'),
+        upload(sc.soundFile ? 'Choose another file' : 'Choose a sound file', 'audio/*', async files => { sc.soundFile = await this.upload(files[0]); this.commit(true); }),
+      );
+    }
     if (!gs.ambient) {
       snd.append(el('p', 'hint', 'Ambient sound is off.'), button('Turn on ambient sound', () => { gs.ambient = true; this.commit(true); this.cb.toast('Ambient sound on — set the volume in Settings'); }));
     } else {
@@ -882,7 +966,8 @@ export class Editor {
         focused: 'While I use any app',
         never: 'Never',
       }, () => this.commit()),
-      el('p', 'hint', 'While paused, nothing moves or redraws (and the soundscape stops), so games and apps get your computer’s full speed — like Wallpaper Engine. It never pauses while the editor or app drawer is open.'),
+      el('p', 'hint', 'While paused, nothing moves or redraws (and the soundscape stops), so games and apps get your computer’s full speed — like Wallpaper Engine. It never pauses while the editor or app drawer is open, or while your mouse is on the wallpaper.'),
+      el('p', 'status-line', this.cb.pauseStatus?.() || ''),
       toggle('Panel and dock look normal while a window is maximized', g, 'taskbarOnMaximize', () => this.commit()),
       select('Open all apps from a hot corner', g, 'drawerCorner', { none: 'Off', 'top-left': 'Top-left', 'top-right': 'Top-right', 'bottom-left': 'Bottom-left', 'bottom-right': 'Bottom-right' }, () => this.commit()),
     );
@@ -898,6 +983,7 @@ export class Editor {
     const snd = section(body, 'Sound and presets');
     const gs = g.sound;
     snd.append(
+      toggle('Mute all sounds', gs, 'muted', () => this.commit(true)),
       toggle('Interface sounds (clicks, opening apps, the drawer…)', gs, 'ui', () => this.commit(true)),
     );
     if (gs.ui) {
@@ -915,6 +1001,27 @@ export class Editor {
         toggle('Fade out while music or video plays', gs, 'pauseForMusic', () => this.commit()),
         el('p', 'hint', 'Plays from your main screen only. Sound starts after your first click or key press on the desktop.'),
       );
+    }
+    const own = section(body, 'Your own sounds');
+    own.appendChild(el('p', 'hint', 'Replace any interface sound with a file of your own (MP3, OGG, WAV, FLAC or M4A). Short sounds work best. For your own background sound, pick “My own sound file” under Scene → Soundscape.'));
+    gs.custom ||= {};
+    for (const [key, label] of Object.entries(CUSTOM_SOUNDS)) {
+      const row = el('div', 'row own-sound');
+      const name = el('span', '', label);
+      const state = el('small', 'hint', gs.custom[key] ? 'your file' : 'built-in');
+      const tools = el('div', 'own-tools');
+      if (gs.custom[key]) {
+        const play = button('▶', () => this.cb.previewSound?.(gs.custom[key]), 'chip-btn');
+        play.setAttribute('aria-label', `Play your ${label.toLowerCase()} sound`);
+        const clear = button('×', () => { gs.custom[key] = ''; this.commit(true); }, 'chip-btn');
+        clear.setAttribute('aria-label', `Use the built-in ${label.toLowerCase()} sound`);
+        tools.append(play, clear);
+      }
+      tools.appendChild(upload(gs.custom[key] ? 'Change' : 'Choose…', 'audio/*', async files => { gs.custom[key] = await this.upload(files[0]); this.commit(true); }));
+      const left = el('div', 'own-name');
+      left.append(name, state);
+      row.append(left, tools);
+      own.appendChild(row);
     }
     snd.append(select('When choosing a preset, also restyle the COSMIC taskbar', g, 'matchTaskbar', { ask: 'Ask me each time', always: 'Always', never: 'Never' }, () => this.commit()));
 

@@ -1,5 +1,7 @@
 // Wires the scene, widgets, app drawer and editor together and keeps your setup saved.
-import { api, MONITOR, normalizeConfig, STANDALONE } from './config.js';
+import { api, defaultWidget, MONITOR, normalizeConfig, STANDALONE, WIDGET_GROUPS, WIDGET_TYPES } from './config.js';
+import { PRESETS } from './presets.js';
+import { QuickMenu } from './quickmenu.js';
 import { AppDrawer } from './drawer.js';
 import { Editor } from './editor.js';
 import { SceneView } from './scene.js';
@@ -62,6 +64,8 @@ const editor = new Editor($('#editor'), {
   refreshApps: () => widgets.loadApps(true),
   toast,
   sound: event => sound.play(event),
+  pauseStatus: () => pauseStatusText(),
+  previewSound: url => sound.previewFile(url).catch(() => toast('Could not play that file')),
   saveNow: () => (STANDALONE ? Promise.resolve() : api.saveConfig(cfg).catch(() => null)),
   transition: fn => new Promise(resolve => {
     document.body.classList.add('switching');
@@ -80,7 +84,7 @@ function applyAll() {
   scene.apply(cfg);
   widgets.apply(cfg);
   editor.setConfig(cfg);
-  sound.configure(cfg.general.sound, cfg.scene.sound, MONITOR === 0);
+  sound.configure(cfg.general.sound, cfg.scene.sound, MONITOR === 0, cfg.scene.soundFile);
 }
 
 function scheduleSave() {
@@ -215,6 +219,126 @@ function closeEditor() {
   sound.play('close');
   api.shell('back');
   updatePause();
+  if (!cfg.general.welcomed && MONITOR === 0) {
+    cfg.general.welcomed = true;
+    scheduleSave();
+    setTimeout(() => toast('Tip: right-click the desktop for quick actions, and hold Alt to drag any widget'), 900);
+  }
+}
+
+// ---- moving widgets right on the desktop -------------------------------------------
+let arranging = false;
+function startArranging() {
+  if (editor.open || arranging) return;
+  arranging = true;
+  drawer.hide();
+  widgets.setEditMode(true);
+  widgets.apply(cfg);
+  document.body.classList.add('arranging');
+  $('#arrange-bar').hidden = false;
+  $('#arrange-bar button').focus();
+  updatePause();
+  sound.play('open');
+}
+function stopArranging() {
+  if (!arranging) return;
+  arranging = false;
+  widgets.setEditMode(false);
+  widgets.apply(cfg);
+  document.body.classList.remove('arranging');
+  $('#arrange-bar').hidden = true;
+  updatePause();
+  sound.play('close');
+}
+$('#arrange-bar button').addEventListener('click', stopArranging);
+
+function pauseStatusText() {
+  if (manualPause) return 'Paused by you (right-click the desktop to resume).';
+  if (pauseWanted && !pauseOverridden) return `Paused right now: ${pauseReason || 'a window covers this screen'}.`;
+  if (pauseWanted && pauseOverridden) return 'Running (it looked covered, but your mouse is on the wallpaper, so it kept going).';
+  return 'Running right now.';
+}
+
+// ---- right-click the desktop: quick actions ------------------------------------------
+const menu = new QuickMenu($('#quickmenu'));
+const QUICK_WIDGETS = ['clock', 'date', 'notes', 'todo', 'nowplaying', 'system', 'calendar', 'timer', 'dock', 'search', 'quote', 'moon'];
+
+window.addEventListener('contextmenu', e => {
+  if (editor.open || e.target.closest('#editor, #drawer, #quickmenu, input, textarea')) return;
+  e.preventDefault();
+  const node = e.target.closest('.widget');
+  const w = node && cfg.widgets.find(x => x.id === node.dataset.id);
+  const objectId = !w && scene.hoverId;
+  const o = objectId && cfg.objects.find(x => x.id === objectId);
+  const at = { x: Math.round((e.clientX / innerWidth) * 1000) / 10, y: Math.round((e.clientY / innerHeight) * 1000) / 10 };
+  const items = [];
+  if (w) {
+    items.push(
+      { label: 'Widget settings…', run: () => { openEditor(); editor.selectWidget(w.id); widgets.select(w.id); } },
+      { label: 'Hide this widget', run: () => { w.visible = false; changed(); toast('Hidden — show it again in Customize → Widgets'); } },
+      { label: 'Remove this widget', danger: true, run: () => removeWidget(w) },
+      '-',
+    );
+  } else if (o) {
+    items.push(
+      { label: `${o.name || 'Object'} settings…`, run: () => { openEditor(); editor.selectObject(o.id); scene.select(o.id); } },
+      { label: 'Remove this object', danger: true, run: () => { cfg.objects = cfg.objects.filter(x => x !== o); changed(); toast('Object removed'); } },
+      '-',
+    );
+  }
+  items.push(
+    { label: 'Customize…', hint: 'Ctrl+E', run: openEditor },
+    { label: 'All apps', hint: 'Ctrl+Space', run: () => drawer.show() },
+    { label: 'Move widgets', hint: 'Alt+drag', run: startArranging },
+    { label: 'Add a widget', items: QUICK_WIDGETS.map(type => ({ label: WIDGET_TYPES[type], run: () => addWidgetAt(type, at) })) },
+    {
+      label: 'Change the look', items: [
+        { label: 'Surprise me', run: () => surprise() },
+        ...(cfg.general.myLooks || []).map(look => ({ label: '★ ' + look.name, run: () => editor.applyMyLook(look.id) })),
+        ...Object.keys(PRESETS).map(name => ({ label: name, run: () => editor.applyPreset(name) })),
+      ],
+    },
+    '-',
+    { label: manualPause ? 'Resume animation' : 'Pause animation', run: () => { manualPause = !manualPause; updatePause(); } },
+    { label: cfg.general.sound.muted ? 'Unmute sounds' : 'Mute sounds', run: () => { cfg.general.sound.muted = !cfg.general.sound.muted; changed(); toast(cfg.general.sound.muted ? 'Sounds muted' : 'Sounds on'); } },
+    { label: 'Use this as my lock screen', run: () => setLockscreenFromDesktop() },
+    '-',
+    { label: 'Quit Deskscape', run: () => { if (confirm('Quit Deskscape? Your normal wallpaper comes back.')) api.shell('quit'); } },
+  );
+  sound.play('click');
+  menu.show(e.clientX, e.clientY, items, w ? WIDGET_TYPES[w.type] : o ? (o.name || 'Object') : '');
+});
+
+function addWidgetAt(type, at) {
+  const w = defaultWidget(type);
+  w.x = Math.max(0, Math.min(96 - (w.w / innerWidth) * 100, at.x));
+  w.y = Math.max(0, Math.min(96 - (w.h / innerHeight) * 100, at.y));
+  cfg.widgets.push(w);
+  changed();
+  sound.play('success');
+  toast(`${WIDGET_TYPES[type]} added — hold Alt and drag to move it`);
+}
+
+let lastRemoved = null;
+function removeWidget(w) {
+  lastRemoved = { w, index: cfg.widgets.indexOf(w) };
+  cfg.widgets = cfg.widgets.filter(x => x !== w);
+  changed();
+  toast('Widget removed — press Ctrl+Z to bring it back');
+}
+
+function surprise() {
+  const names = Object.keys(PRESETS).filter(n => n !== 'Blank');
+  editor.applyPreset(names[Math.floor(Math.random() * names.length)]);
+}
+
+async function setLockscreenFromDesktop() {
+  toast('Taking a picture of your desktop…');
+  try {
+    await api.setLockscreen({ source: 'scene', widgets: false });
+    sound.play('success');
+    toast('Lock screen updated — press Super+Escape to see it');
+  } catch (err) { toast('Could not set the lock screen: ' + err.message); }
 }
 
 let toastTimer;
@@ -235,6 +359,14 @@ window.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'e') { e.preventDefault(); editor.open ? closeEditor() : openEditor(); }
   else if ((e.ctrlKey || e.metaKey) && e.key === ' ') { e.preventDefault(); drawer.open ? drawer.hide() : drawer.show(); }
   else if (e.key === 'Escape' && editor.open) { e.preventDefault(); closeEditor(); }
+  else if (e.key === 'Escape' && arranging) { e.preventDefault(); stopArranging(); }
+  else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && lastRemoved && !typing) {
+    e.preventDefault();
+    cfg.widgets.splice(Math.min(lastRemoved.index, cfg.widgets.length), 0, lastRemoved.w);
+    lastRemoved = null;
+    changed();
+    toast('Widget is back');
+  }
   else if (e.key === 'Delete' && editor.open && !typing) {
     if (widgets.selectedId) { cfg.widgets = cfg.widgets.filter(w => w.id !== widgets.selectedId); widgets.select(null); editor.selectWidget(null); changed(); }
     else if (scene.selectedId) { cfg.objects = cfg.objects.filter(o => o.id !== scene.selectedId); scene.select(null); editor.selectObject(null); changed(); }
@@ -243,6 +375,12 @@ window.addEventListener('keydown', e => {
 
 let cornerTimer;
 window.addEventListener('pointermove', e => {
+  // The mouse can only reach the wallpaper where nothing covers it, so a pause here is a mistake.
+  if (pauseWanted && !pauseOverridden && !manualPause) {
+    pauseOverridden = true;
+    updatePause();
+    api.shell('pause-overridden');
+  }
   const corner = cfg?.general.drawerCorner;
   if (!corner || corner === 'none' || editor.open || drawer.open) return;
   const top = e.clientY < 6, bottom = e.clientY > innerHeight - 6, left = e.clientX < 6, right = e.clientX > innerWidth - 6;
@@ -252,10 +390,14 @@ window.addEventListener('pointermove', e => {
 });
 
 // ---- pausing while you use an app (told by the desktop app, per screen) ----------------
-let pauseWanted = false;
+let pauseWanted = false;     // the desktop app says a window covers this screen
+let pauseReason = '';
+let pauseOverridden = false; // ...but the mouse is on the wallpaper, so it can't be covered
+let manualPause = false;     // paused from the right-click menu
 let paused = false;
 function updatePause() {
-  const now = pauseWanted && !editor.open && !drawer.open; // never while you're looking at it
+  // never while you're looking at it: editor, app drawer or moving widgets
+  const now = (manualPause || (pauseWanted && !pauseOverridden)) && !editor.open && !drawer.open && !arranging;
   if (now === paused) return;
   paused = now;
   scene.setPaused(now);
@@ -303,7 +445,7 @@ setInterval(async () => {
 }, 5000);
 
 window.deskscape = {
-  setPaused(on) { pauseWanted = !!on; updatePause(); },
+  setPaused(on, reason = '') { pauseWanted = !!on; pauseReason = reason; pauseOverridden = false; updatePause(); },
   openEditor,
   closeEditor,
   openDrawer: () => drawer.show(),
@@ -320,7 +462,7 @@ window.deskscape = {
   applyAll();
   document.body.dataset.monitor = MONITOR;
   if (cfg.general.editorHint && MONITOR === 0) {
-    toast('Welcome to Deskscape — press Ctrl+E or the pencil button to customize');
+    toast('Welcome to Deskscape — pick a look in the panel on the right, or right-click the desktop any time');
   }
   if (STANDALONE) toast('Preview mode: changes are not saved');
   if (new URLSearchParams(location.search).get('edit') === '1') openEditor();

@@ -13,15 +13,20 @@ Deskscape is a regular Pop!_OS package, not a Flatpak: COSMIC only lets apps out
 | **Install** | `curl -fsSL https://jayswansocool48.github.io/Deskscape/install.sh \| bash` (or `./install.sh` in this folder) |
 | **Open** | Press **Super**, type **Deskscape**, click its icon. It opens in front with the Customize panel; click **Done** and it settles in as your wallpaper, behind your windows. Opening it again brings the panel back. |
 | **Update** | Automatic with your other updates in the COSMIC Store, or Settings → **Check for updates**. |
-| **Not working?** | Run `./install.sh --check` and send the output. |
+| **Not working?** | Run `./install.sh --check` and send the output. If it pauses when it shouldn't, `deskscape --windows` shows what it sees of your windows. |
 | **Uninstall** | Deskscape → Settings → **Uninstall Deskscape** (removes the app, its icon and all its data), the COSMIC Store, or `./install.sh --uninstall`. |
 
 ## What you can do
 
 ![Aurora preset](docs/screenshots/aurora.png)
 
-- **18 presets** — Crystal Cove, Above the Clouds, Ember Sky, Milky Way (these three use real 360° skies), Aurora, Neon Grid, Sunset Drive, Sakura, Deep Ocean, Forest Mist, Rainy Window, Cyber HUD, Cozy Night, Galaxy, Zen Garden, Minimal Mono, Calm Paper, Blank. Each comes with its own soundscape and a matching style for your COSMIC taskbar (applied only if you say yes), and **Surprise me** picks one at random.
+- **20 presets** — Sunflower Field, Wildflower Meadow, Crystal Cove, Above the Clouds, Ember Sky, Milky Way (Sunflower Field and these three use real 360° skies), Aurora, Neon Grid, Sunset Drive, Sakura, Deep Ocean, Forest Mist, Rainy Window, Cyber HUD, Cozy Night, Galaxy, Zen Garden, Minimal Mono, Calm Paper, Blank. Each comes with its own soundscape and a matching style for your COSMIC taskbar (applied only if you say yes), and **Surprise me** picks one at random.
 - **Mouse-driven camera** — parallax (slides like a game menu), orbit or fixed.
+- **Right-click the desktop** for quick actions: add a widget where you clicked, change the look, move widgets, pause or resume, mute, set the lock screen, or open a widget's settings.
+- **Move widgets without the editor** — hold **Alt** and drag any widget, or right-click → **Move widgets** to drag and resize them all.
+- **My looks** — save what you made and switch back to it any time (Look tab or right-click → Change the look).
+- **Your own sounds** — use your own files for clicks, opening apps, the timer chime and the background soundscape.
+- **Fields** — sunflowers, wildflowers or tall grass stretching to the horizon and swaying in the wind, for any scene.
 - **Widgets move your way** — drift with the camera at their own depth, stay perfectly still, or turn in **3D** like the panels of a game menu (for all widgets or one at a time).
 - **360° skies** — real panoramas all around the scene that you look around in with the mouse, and that light and reflect in the 3D objects. Pick from Poly Haven's free library or use your own 360° photo (.jpg, .png or .hdr).
 - **Free 3D models** — add models from Poly Haven's library in one click, or your own `.glb`.
@@ -58,7 +63,7 @@ Deskscape is a regular Pop!_OS package, not a Flatpak: COSMIC only lets apps out
 | Customize | Pencil button (bottom-right), **Ctrl+E**, or open Deskscape again from the app list |
 | All apps | **Ctrl+Space**, the dock's grid button, or a hot corner (Settings) |
 | Pin an app to the dock | Hover it in the launcher and click the star |
-| Move / resize widgets | In the editor, drag a widget (hold Shift to snap); drag its orange corner to resize |
+| Move / resize widgets | Hold **Alt** and drag a widget, or right-click → Move widgets (drag; orange corner resizes; Shift snaps) |
 | Move / resize 3D objects | In the editor, drag an object; scroll on it to resize |
 | Spin an object | Outside the editor, grab it with the mouse |
 | Delete selected item | **Delete** in the editor |

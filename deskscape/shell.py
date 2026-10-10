@@ -204,6 +204,11 @@ class DeskscapeApp(Gtk.Application):
                 LayerShell.set_layer(win, layer)
                 if action == "front":
                     win.present()
+        elif action == "pause-overridden":
+            # The page got mouse movement while we thought a window covered it: log what we saw.
+            win = mine[0]
+            log(f"pause was wrong on {win.connector}: windows looked like {self.desktop_state.get(win.connector)}; "
+                "the wallpaper keeps running until the windows change")
         elif action == "config-changed":
             # Other screens pick up the new look; pausing and taskbar settings may have changed.
             self.load_prefs()
@@ -223,6 +228,9 @@ class DeskscapeApp(Gtk.Application):
         }
 
     def on_desktop_state(self, state):
+        if state != self.desktop_state:
+            log("windows: " + ", ".join(f"{name}: " + (" ".join(k for k, v in s.items() if v) or "clear")
+                                        for name, s in sorted(state.items())))
         self.desktop_state = state
         self.apply_pause()
         self.schedule_taskbar()
@@ -235,9 +243,11 @@ class DeskscapeApp(Gtk.Application):
             if not s and len(self.windows) == 1 and len(self.desktop_state) == 1:
                 s = next(iter(self.desktop_state.values()))  # one screen: names don't matter
             paused = (mode != "never" and bool(s.get("maximized"))) or (mode == "focused" and bool(s.get("focused")))
+            reason = ("a window is full screen" if s.get("fullscreen") else
+                      "a window is maximized on this screen" if s.get("maximized") else "you are using an app")
             if paused != win.paused:
                 win.paused = paused
-                self.run_js(f"window.deskscape && window.deskscape.setPaused({json.dumps(paused)})", [win])
+                self.run_js(f"window.deskscape && window.deskscape.setPaused({json.dumps(paused)}, {json.dumps(reason)})", [win])
 
     def schedule_taskbar(self):
         if self.taskbar_timer:
@@ -276,7 +286,7 @@ class DeskscapeApp(Gtk.Application):
         return False
 
     # ---- snapshots (for the lock screen) --------------------------------------
-    def snapshot_from_thread(self, monitor, widgets, path, timeout=15):
+    def snapshot_from_thread(self, monitor, widgets, path, timeout=15, width=0):
         """Called from the server thread: saves a picture of a screen to `path` as PNG."""
         done = threading.Event()
         result = {}
@@ -285,14 +295,14 @@ class DeskscapeApp(Gtk.Application):
             result["error"] = error
             done.set()
 
-        GLib.idle_add(self.snapshot, monitor, widgets, path, finish)
+        GLib.idle_add(self.snapshot, monitor, widgets, path, finish, width)
         if not done.wait(timeout):
             raise RuntimeError("taking the picture took too long")
         if result.get("error"):
             raise RuntimeError(result["error"])
         return path
 
-    def snapshot(self, monitor, widgets, path, finish):
+    def snapshot(self, monitor, widgets, path, finish, width=0):
         win = next((w for w in self.windows if w.index == monitor), None) or self.windows[0]
         hide = "snapshot" + ("" if widgets else " snapshot-no-widgets")
         self.run_js(f"document.documentElement.classList.add(...{json.dumps(hide.split())})", [win])
@@ -304,6 +314,8 @@ class DeskscapeApp(Gtk.Application):
             try:
                 texture = webview.get_snapshot_finish(res)
                 texture.save_to_png(str(path))
+                if width:
+                    shrink(path, width)
                 finish()
             except (GLib.Error, AttributeError) as exc:
                 finish(f"could not take the picture: {exc}")
@@ -350,6 +362,17 @@ class DeskscapeApp(Gtk.Application):
         if self.server:
             self.server.stop()
         Gtk.Application.do_shutdown(self)
+
+
+def shrink(path, width):
+    """Scales a saved PNG down to `width` pixels wide (for preview pictures)."""
+    try:
+        gi.require_version("GdkPixbuf", "2.0")
+        from gi.repository import GdkPixbuf
+        pix = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(path), width, -1, True)
+        pix.savev(str(path), "png", [], [])
+    except (ValueError, ImportError, GLib.Error) as exc:
+        log(f"could not shrink {path}: {exc}")
 
 
 LOG_FILE = Path(GLib.get_user_cache_dir()) / "deskscape.log"
