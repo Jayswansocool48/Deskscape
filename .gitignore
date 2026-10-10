@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+dist/
+build/
+node_modules/
+.vscode/
+.idea/
+*.swp
+.flatpak-builder/
+repo/
+*.flatpak

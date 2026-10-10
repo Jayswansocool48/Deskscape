@@ -1,0 +1,24 @@
+[Desktop Entry]
+Type=Application
+Name=Deskscape
+GenericName=3D Desktop
+Comment=Customize your desktop with widgets and 3D objects
+Exec=deskscape
+Icon=io.github.jayswansocool48.Deskscape
+Terminal=false
+Categories=Utility;Settings;DesktopSettings;
+Keywords=wallpaper;widgets;3D;desktop;theme;customize;
+StartupNotify=false
+Actions=Customize;Window;Quit;
+
+[Desktop Action Customize]
+Name=Customize
+Exec=deskscape --edit
+
+[Desktop Action Window]
+Name=Open in a Window
+Exec=deskscape --window
+
+[Desktop Action Quit]
+Name=Quit
+Exec=deskscape --quit
