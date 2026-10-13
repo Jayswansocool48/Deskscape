@@ -1,0 +1,24 @@
+[Desktop Entry]
+Type=Application
+Name=Aerie
+GenericName=Live Desktop
+Comment=A living 3D desktop, with an AI that helps you design it
+Exec=aerie
+Icon=io.github.jayswansocool48.Aerie
+Terminal=false
+Categories=Utility;Settings;DesktopSettings;
+Keywords=wallpaper;live wallpaper;widgets;3D;desktop;theme;customize;AI;Deskscape;
+StartupNotify=false
+Actions=Customize;Window;Quit;
+
+[Desktop Action Customize]
+Name=Customize
+Exec=aerie --edit
+
+[Desktop Action Window]
+Name=Open in a Window
+Exec=aerie --window
+
+[Desktop Action Quit]
+Name=Quit
+Exec=aerie --quit

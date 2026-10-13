@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2026 Jayswansocool48 -->
+<component type="desktop-application">
+  <id>io.github.jayswansocool48.Aerie</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+
+  <name>Aerie</name>
+  <summary>A living 3D desktop, with an AI that helps you design it</summary>
+  <developer id="io.github.jayswansocool48">
+    <name>Jayswansocool48</name>
+  </developer>
+
+  <description>
+    <p>
+      Aerie turns your COSMIC desktop into a living 3D scene, like Wallpaper Engine: sunflower fields
+      that sway in the wind, aurora skies, neon grids and deep space, with widgets and an app launcher
+      on top and a camera that follows your mouse. Your windows stay on top as usual.
+    </p>
+    <ul>
+      <li>Five hand-made looks, plus looks you save yourself</li>
+      <li>An optional design assistant: describe the mood you want and Claude, ChatGPT or a free local Ollama model designs it, with one-click undo</li>
+      <li>22 widgets you can drag right on the desktop, a magnifying dock and a full-screen app drawer</li>
+      <li>3D shapes and models, 360° skies, fields of flowers, particles, fog and lighting</li>
+      <li>Restyles COSMIC's real panel and dock, glass windows and lock screen, with one-click restore</li>
+      <li>Interface sounds, ten soundscapes, and your own sound files</li>
+      <li>Pauses while the app you're using is maximized or full screen, so games get full speed</li>
+      <li>Right-click the desktop for quick actions</li>
+      <li>No accounts, ads or tracking. Only goes online for the features you turn on</li>
+    </ul>
+    <p>
+      Aerie is made for the COSMIC desktop on Pop!_OS and works on other Wayland desktops that
+      support layer-shell. On other desktops it opens in a normal window. Aerie was previously
+      called Deskscape; your setup carries over.
+    </p>
+  </description>
+
+  <launchable type="desktop-id">io.github.jayswansocool48.Aerie.desktop</launchable>
+  <provides>
+    <binary>aerie</binary>
+  </provides>
+  <replaces>
+    <id>io.github.jayswansocool48.Deskscape</id>
+  </replaces>
+
+  <url type="homepage">https://github.com/Jayswansocool48/aerie</url>
+  <url type="bugtracker">https://github.com/Jayswansocool48/aerie/issues</url>
+  <url type="vcs-browser">https://github.com/Jayswansocool48/aerie</url>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>The Golden Meadow look</caption>
+      <image>https://raw.githubusercontent.com/Jayswansocool48/aerie/main/docs/screenshots/desktop.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>The design assistant</caption>
+      <image>https://raw.githubusercontent.com/Jayswansocool48/aerie/main/docs/screenshots/assistant.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Choosing a look</caption>
+      <image>https://raw.githubusercontent.com/Jayswansocool48/aerie/main/docs/screenshots/looks.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>The Deep Space look</caption>
+      <image>https://raw.githubusercontent.com/Jayswansocool48/aerie/main/docs/screenshots/space.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Restyling COSMIC's real panel and dock</caption>
+      <image>https://raw.githubusercontent.com/Jayswansocool48/aerie/main/docs/screenshots/cosmic.png</image>
+    </screenshot>
+  </screenshots>
+
+  <branding>
+    <color type="primary" scheme_preference="light">#f8dcae</color>
+    <color type="primary" scheme_preference="dark">#2a2346</color>
+  </branding>
+
+  <categories>
+    <category>Utility</category>
+    <category>Settings</category>
+  </categories>
+  <keywords>
+    <keyword>wallpaper</keyword>
+    <keyword>live wallpaper</keyword>
+    <keyword>widgets</keyword>
+    <keyword>3D</keyword>
+    <keyword>desktop</keyword>
+    <keyword>customize</keyword>
+    <keyword>taskbar</keyword>
+    <keyword>AI</keyword>
+    <keyword>Deskscape</keyword>
+  </keywords>
+
+  <requires>
+    <display_length compare="ge">768</display_length>
+  </requires>
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </supports>
+
+  <content_rating type="oars-1.1" />
+
+  <releases>
+    <release version="1.0.0" date="2026-10-13">
+      <description>
+        <p>First release of Aerie (formerly Deskscape).</p>
+        <ul>
+          <li>A new name, icon and a friendlier editor</li>
+          <li>An optional AI design assistant (Claude, ChatGPT or a local Ollama model)</li>
+          <li>Five new hand-made looks</li>
+          <li>Your Deskscape setup, saved looks and pictures carry over automatically</li>
+        </ul>
+      </description>
+    </release>
+  </releases>
+</component>

@@ -1,0 +1,120 @@
+# Builds the Aerie package (.deb for Pop!_OS 24.04) on every push.
+# To release: GitHub → Actions → Release → "Run workflow" (releases the version in
+# aerie/__init__.py), or push a tag that matches it (git tag v1.2.3 && git push origin v1.2.3).
+# A release also:
+#   - attaches the .deb to a GitHub Release
+#   - publishes a signed package source on GitHub Pages, so installed copies get updates
+#     through the COSMIC Store / apt (only after tools/publish-setup.sh has been run once)
+name: Release
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: Publish a release of the version in aerie/__init__.py
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04   # same base as Pop!_OS 24.04
+    outputs:
+      release: ${{ steps.version.outputs.release }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Work out the version
+        id: version
+        run: |
+          VERSION=$(python3 -c "import re; print(re.search(r'__version__ = \"(.+?)\"', open('aerie/__init__.py').read())[1])")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            if [[ "${GITHUB_REF#refs/tags/v}" != "$VERSION" ]]; then
+              echo "::error::Tag ${GITHUB_REF#refs/tags/} doesn't match version $VERSION in aerie/__init__.py. Run 'git pull' before tagging, or use Actions → Release → Run workflow."
+              exit 1
+            fi
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          elif [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" && "${{ inputs.release }}" == "true" ]]; then
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run tests
+        run: python3 tests/test_desktop_watch.py
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends meson ninja-build gcc pkg-config libgtk-4-dev \
+            libwayland-dev wayland-protocols gobject-introspection libgirepository1.0-dev dpkg-dev \
+            desktop-file-utils appstream apt-utils
+
+      - name: Build package
+        run: tools/build-deb.sh
+
+      - name: Check package and store listing
+        run: |
+          dpkg-deb --info dist/*.deb
+          dpkg-deb --contents dist/*.deb | grep -E "libgtk4-layer-shell|swcatalog|metainfo|applications"
+          desktop-file-validate data/*.desktop
+          appstreamcli validate --no-net --explain data/*.metainfo.xml || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aerie-deb
+          path: dist/*.deb
+
+      - name: Publish the release
+        if: steps.version.outputs.release == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          files: dist/*.deb
+          generate_release_notes: true
+
+      - name: Build the signed package source
+        if: steps.version.outputs.release == 'true' && vars.APT_PUBLISH == 'true'
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: |
+          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+          KEY_ID=$(gpg --list-secret-keys --with-colons | awk -F: '/^sec/ {print $5; exit}')
+          URL="https://${GITHUB_REPOSITORY_OWNER,,}.github.io/${GITHUB_REPOSITORY#*/}/"
+          mkdir -p site
+          cp dist/*.deb site/
+          cd site
+          apt-ftparchive packages . > Packages
+          gzip -9kn Packages
+          apt-ftparchive -o APT::FTPArchive::Release::Origin=Aerie \
+            -o APT::FTPArchive::Release::Label=Aerie \
+            -o APT::FTPArchive::Release::Description="Aerie for Pop!_OS" release . > Release
+          gpg --batch --yes --default-key "$KEY_ID" --clearsign -o InRelease Release
+          gpg --batch --yes --default-key "$KEY_ID" -abs -o Release.gpg Release
+          gpg --export "$KEY_ID" > aerie.gpg
+          printf 'Types: deb\nURIs: %s\nSuites: ./\nSigned-By: /usr/share/keyrings/aerie.gpg\n' "$URL" > aerie.sources
+          cp ../data/*.svg icon.svg
+          cp ../tools/pages-index.html index.html
+          cp ../tools/web-install.sh install.sh
+
+      - uses: actions/upload-pages-artifact@v3
+        if: steps.version.outputs.release == 'true' && vars.APT_PUBLISH == 'true'
+        with:
+          path: site
+
+  publish:
+    needs: build
+    if: needs.build.outputs.release == 'true' && vars.APT_PUBLISH == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+    steps:
+      - uses: actions/deploy-pages@v4
