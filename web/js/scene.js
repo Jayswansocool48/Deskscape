@@ -152,14 +152,14 @@ export class SceneView {
       },
       vertexShader: PARTICLE_VERTEX, fragmentShader: PARTICLE_FRAGMENT,
       transparent: true, depthWrite: false,
-      blending: p.style === 'bubbles' || p.style === 'snow' ? THREE.NormalBlending : THREE.AdditiveBlending,
+      blending: ['bubbles', 'snow', 'petals'].includes(p.style) ? THREE.NormalBlending : THREE.AdditiveBlending,
     });
     this.particles = new THREE.Points(geo, mat);
     this.particles.userData = { speed: p.speed, style: p.style || 'dust', seed };
     this.scene.add(this.particles);
   }
 
-  /** A field of sunflowers, wildflowers or tall grass, made in code and swaying in the wind. */
+  /** Ground cover made in code: flowers, grass or pines swaying in the wind, or a moving ocean or dunes. */
   buildField(f) {
     if (this.field) {
       this.scene.remove(this.field);
@@ -169,6 +169,25 @@ export class SceneView {
     if (!f.type || f.type === 'none') return;
     this.fieldUniforms ||= { uTime: { value: 0 }, uWind: { value: 1 } };
     const group = new THREE.Group();
+    if (SURFACES[f.type]) {
+      // a moving surface instead of plants: low-poly ocean waves or slowly shifting sand dunes
+      const spec = SURFACES[f.type];
+      const geo = new THREE.PlaneGeometry(240, 150, spec.segments[0], spec.segments[1]);
+      geo.rotateX(-Math.PI / 2);
+      const mat = new THREE.MeshStandardMaterial({ color: f.ground || spec.color, roughness: spec.roughness, metalness: spec.metalness, flatShading: true });
+      mat.onBeforeCompile = shader => {
+        Object.assign(shader.uniforms, this.fieldUniforms);
+        shader.vertexShader = 'uniform float uTime; uniform float uWind;\n' + shader.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+          ${spec.wave}`);
+      };
+      const surface = new THREE.Mesh(geo, mat);
+      surface.position.set(0, FIELD_Y + spec.lift, -55);
+      group.add(surface);
+      group.userData.ground = surface;
+      this.field = group;
+      this.scene.add(group);
+      return;
+    }
     const ground = new THREE.Mesh(new THREE.CircleGeometry(90, 48), new THREE.MeshStandardMaterial({ color: f.ground || '#3d5a1e', roughness: 1 }));
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = FIELD_Y;
@@ -264,7 +283,18 @@ export class SceneView {
       }).catch(() => inner.add(new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: '#ff4444', wireframe: true }))));
       return;
     }
-    const mesh = new THREE.Mesh(makeGeometry(cfg.shape), makeMaterial(cfg));
+    const geometry = makeGeometry(cfg.shape);
+    const material = makeMaterial(cfg);
+    if (geometry.attributes.color && 'vertexColors' in material && !material.isShaderMaterial) material.vertexColors = true; // trees: brown trunk, tinted leaves
+    if (cfg.shape === 'rock' && 'flatShading' in material) material.flatShading = true;
+    if (geometry.attributes.aGlow && !material.isShaderMaterial && !material.wireframe) {
+      // lit windows glow warm on their own, whatever color the building is
+      material.onBeforeCompile = shader => {
+        shader.vertexShader = 'attribute float aGlow;\nvarying float vGlow;\n' + shader.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vGlow = aGlow;');
+        shader.fragmentShader = 'varying float vGlow;\n' + shader.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  totalEmissiveRadiance += vec3(1.0, 0.55, 0.2) * vGlow * 1.1;');
+      };
+    }
+    const mesh = new THREE.Mesh(geometry, material);
     inner.add(mesh);
     const glow = cfg.material === 'emissive' ? Math.max(0.6, cfg.glow || 0) : cfg.glow || 0;
     if (glow > 0.05 && cfg.material !== 'wireframe') {
@@ -497,7 +527,7 @@ export class SceneView {
 }
 
 // ---- particles --------------------------------------------------------------
-const PARTICLE_STYLE_IDS = { dust: 0, stars: 1, fireflies: 2, snow: 3, rain: 4, bubbles: 5 };
+const PARTICLE_STYLE_IDS = { dust: 0, stars: 1, fireflies: 2, snow: 3, rain: 4, bubbles: 5, petals: 6 };
 
 const PARTICLE_VERTEX = `
   attribute float aSeed;
@@ -511,6 +541,7 @@ const PARTICLE_VERTEX = `
     if (uStyle == 2.0) { a = pow(0.5 + 0.5 * sin(uTime * (0.8 + aSeed) + aSeed * 30.0), 3.0); size *= 1.6; }
     if (uStyle == 4.0) { size *= 1.8; a = 0.55; }
     if (uStyle == 5.0) { size *= 1.5; a = 0.7; }
+    if (uStyle == 6.0) { size *= 1.7; a = 0.9; }
     vAlpha = a;
     gl_PointSize = size * uPixelRatio * (12.0 / -mv.z);
     gl_Position = projectionMatrix * mv;
@@ -528,6 +559,13 @@ const PARTICLE_FRAGMENT = `
       alpha = (1.0 - smoothstep(0.02, 0.06, abs(c.x))) * (1.0 - smoothstep(0.2, 0.5, abs(c.y)));
     } else if (uStyle == 5.0) {     // bubbles: a ring with a highlight
       alpha = smoothstep(0.5, 0.42, d) * smoothstep(0.3, 0.42, d) + 0.6 * smoothstep(0.12, 0.0, length(c - vec2(-0.15, -0.15)));
+    } else if (uStyle == 6.0) {     // petals: a tilted oval with a soft paler middle
+      vec2 r = mat2(0.8, -0.6, 0.6, 0.8) * c;
+      float e = length(vec2(r.x * 1.9, r.y));
+      alpha = smoothstep(0.5, 0.38, e);
+      gl_FragColor = vec4(mix(vec3(1.0), uColor, 0.55 + 0.45 * smoothstep(0.0, 0.4, e)), alpha * vAlpha);
+      if (alpha < 0.01) discard;
+      return;
     } else if (uStyle == 3.0) {     // snow: soft round flake
       alpha = smoothstep(0.5, 0.15, d);
     } else {                        // dust, stars, fireflies: glowing dot
@@ -546,6 +584,7 @@ function moveParticles(points, dt, t) {
     switch (style) {
       case 'stars': continue;
       case 'snow': y -= dt * speed * (0.4 + s); x += Math.sin(t * 0.8 + s * 30) * dt * 0.3; break;
+      case 'petals': y -= dt * speed * (0.35 + s * 0.5); x += (Math.sin(t * 0.7 + s * 40) * 0.6 + 0.5) * dt * speed * 0.9; break;
       case 'rain': y -= dt * speed * (8 + s * 6); x -= dt * speed * 0.8; break;
       case 'fireflies': x += Math.sin(t * 0.4 + s * 50) * dt * speed * 1.2; y += Math.cos(t * 0.33 + s * 70) * dt * speed * 1.2; break;
       case 'bubbles': y += dt * speed * (0.6 + s); x += Math.sin(t * 1.5 + s * 20) * dt * 0.25; break;
@@ -599,6 +638,11 @@ function makeGeometry(shape) {
     case 'cylinder': return new THREE.CylinderGeometry(0.6, 0.6, 2, 48);
     case 'capsule': return new THREE.CapsuleGeometry(0.6, 1.1, 12, 32);
     case 'ring': return new THREE.TorusGeometry(1.2, 0.06, 16, 128);
+    case 'tree': return treeGeometry();
+    case 'pine': return pineGeometry();
+    case 'rock': return rockGeometry();
+    case 'tower': return towerGeometry();
+    case 'lantern': return new THREE.CylinderGeometry(0.5, 0.36, 1.1, 14);
     case 'icosahedron':
     default: return new THREE.IcosahedronGeometry(1, 0);
   }
@@ -710,7 +754,112 @@ function grassTuft(blades, height, spread) {
   return mergeGeometries(parts);
 }
 
+// moving surfaces: the wave is GLSL added to the vertex shader (position is the flat plane)
+const SURFACES = {
+  water: {
+    color: '#2a6f8f', roughness: 0.18, metalness: 0.35, lift: 0.2, segments: [150, 95],
+    wave: `float tw = uTime * (0.6 + 0.4 * uWind);
+          float a = 0.22 * uWind;
+          transformed.y += a * (sin(position.x * 0.32 + tw * 1.1) * 0.9 + sin(position.z * 0.45 - tw * 0.8) * 0.7
+            + sin((position.x + position.z) * 0.9 + tw * 1.6) * 0.35);`,
+  },
+  dunes: {
+    color: '#d9a066', roughness: 1, metalness: 0, lift: -0.4, segments: [120, 80],
+    wave: `float tw = uTime * 0.03 * uWind;
+          transformed.y += 1.4 * sin(position.x * 0.09 + position.z * 0.05 + tw) * cos(position.z * 0.11 - tw * 0.7)
+            + 0.5 * sin(position.x * 0.23 - position.z * 0.17 + tw * 1.3) + 0.12 * sin(position.x * 0.9 + position.z * 0.3);`,
+  },
+};
+
+function treeGeometry() {
+  const parts = [];
+  const trunk = new THREE.CylinderGeometry(0.11, 0.17, 1.4, 7);
+  trunk.translate(0, 0.7, 0);
+  parts.push(painted(trunk, '#5b4434'));
+  const blobs = [[0, 1.75, 0, 0.75], [0.5, 1.5, 0.15, 0.55], [-0.45, 1.55, -0.1, 0.55], [0.1, 2.25, -0.1, 0.5], [-0.15, 1.45, 0.45, 0.45]];
+  for (const [x, y, z, r] of blobs) {
+    const b = new THREE.IcosahedronGeometry(r, 1);
+    b.translate(x, y, z);
+    parts.push(painted(b, '#e8e8e8', '#ffffff'));
+  }
+  const g = mergeGeometries(parts);
+  g.translate(0, -1.2, 0);
+  return g;
+}
+
+function pineGeometry({ leaf = '#d0d0d0', tip = '#ffffff', trunk: bark = '#7a5a40' } = {}, height = 1) {
+  const parts = [];
+  const trunk = new THREE.CylinderGeometry(0.08, 0.12, 0.6 * height, 6);
+  trunk.translate(0, 0.3 * height, 0);
+  parts.push(painted(trunk, bark));
+  for (let i = 0; i < 3; i++) {
+    const r = (0.75 - i * 0.18) * height, h = (1.1 - i * 0.15) * height;
+    const c = new THREE.ConeGeometry(r, h, 8);
+    c.translate(0, (0.55 + i * 0.55) * height + h / 2, 0);
+    parts.push(painted(c, leaf, tip));
+  }
+  return mergeGeometries(parts);
+}
+
+function towerGeometry() {
+  const parts = [];
+  const add = (geo, glow) => {
+    const g = geo.index ? geo.toNonIndexed() : geo;
+    g.deleteAttribute('uv');
+    g.setAttribute('aGlow', new THREE.BufferAttribute(new Float32Array(g.attributes.position.count).fill(glow), 1));
+    parts.push(g);
+  };
+  add(new THREE.BoxGeometry(1, 3, 1), 0);
+  const roof = new THREE.BoxGeometry(0.55, 0.25, 0.55);
+  roof.translate(0, 1.62, 0);
+  add(roof, 0);
+  for (let side = 0; side < 4; side++) {
+    for (let row = 0; row < 11; row++) {
+      for (let col = 0; col < 3; col++) {
+        const w = new THREE.PlaneGeometry(0.2, 0.13);
+        w.translate(-0.3 + col * 0.3, -1.25 + row * 0.25, 0.505);
+        w.rotateY(side * Math.PI / 2);
+        const h = Math.sin(side * 91.7 + row * 12.9898 + col * 78.233) * 43758.5453, r = h - Math.floor(h); // same windows lit every time
+        add(w, r < 0.45 ? 0.6 + r * 0.8 : 0.04);
+      }
+    }
+  }
+  return mergeGeometries(parts);
+}
+
+function rockGeometry() {
+  const g = new THREE.IcosahedronGeometry(1, 1);
+  const pos = g.attributes.position;
+  const seen = new Map();
+  for (let i = 0; i < pos.count; i++) {
+    const key = `${pos.getX(i).toFixed(3)},${pos.getY(i).toFixed(3)},${pos.getZ(i).toFixed(3)}`;
+    // the same bumps every time (so a rock keeps its shape when you recolor it)
+    if (!seen.has(key)) { const h = Math.sin(pos.getX(i) * 12.9898 + pos.getY(i) * 78.233 + pos.getZ(i) * 37.719) * 43758.5453; seen.set(key, 0.8 + (h - Math.floor(h)) * 0.35); }
+    const k = seen.get(key);
+    pos.setXYZ(i, pos.getX(i) * k * 1.2, pos.getY(i) * k * 0.7, pos.getZ(i) * k);
+  }
+  g.computeVertexNormals();
+  return g;
+}
+
 const FIELD_PARTS = {
+  lavender: () => {
+    const head = [];
+    for (let i = 0; i < 7; i++) {
+      const bud = new THREE.SphereGeometry(0.045 - i * 0.003, 6, 4);
+      bud.scale(1, 1.6, 1);
+      bud.translate((i % 2 ? 0.02 : -0.02), 0.62 + i * 0.07, 0);
+      head.push(painted(bud, '#ffffff'));
+    }
+    return {
+      size: 1.25, turn: 3,
+      meshes: [
+        { geometry: grassTuft(6, 0.62, 0.12) },
+        { geometry: mergeGeometries(head), colors: ['#8e6bd6', '#7a5cc4', '#a27ce0', '#6c55b8', '#b08ae8'] },
+      ],
+    };
+  },
+  pines: () => ({ size: 1.15, turn: 3, meshes: [{ geometry: pineGeometry({ leaf: '#24513a', tip: '#e4edf0', trunk: '#5a4232' }), colors: ['#ffffff', '#e2efe4', '#d2e4d8', '#f0f4ee'] }] }),
   sunflowers: () => ({
     size: 1, turn: 0.7,
     meshes: [

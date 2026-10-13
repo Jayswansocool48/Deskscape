@@ -14,7 +14,7 @@ const BOOL = { type: 'bool' };
 const oneOf = values => ({ type: 'enum', values });
 
 const BG_TYPES = Object.keys(BACKGROUNDS).filter(t => !['image', 'video', 'panorama', 'transparent'].includes(t));
-const FIELDS = ['none', 'sunflowers', 'wildflowers', 'grass'];
+const FIELDS = ['none', 'sunflowers', 'wildflowers', 'grass', 'lavender', 'pines', 'water', 'dunes'];
 
 /** Every setting the assistant may change, with what values are allowed. */
 export const PATHS = {

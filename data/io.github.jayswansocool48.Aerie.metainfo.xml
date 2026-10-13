@@ -13,15 +13,15 @@
 
   <description>
     <p>
-      Aerie turns your COSMIC desktop into a living 3D scene, like Wallpaper Engine: sunflower fields
-      that sway in the wind, aurora skies, neon grids and deep space, with widgets and an app launcher
-      on top and a camera that follows your mouse. Your windows stay on top as usual.
+      Aerie turns your COSMIC desktop into a living 3D scene, like Wallpaper Engine: lavender fields
+      at sunset, a rolling ocean, snowy pine forests, a rainy city at night and lanterns drifting over
+      a lake, with widgets and an app launcher on top and a camera that follows your mouse. Your windows stay on top as usual.
     </p>
     <ul>
-      <li>Five hand-made looks, plus looks you save yourself</li>
+      <li>Eight hand-made looks, plus looks you save yourself</li>
       <li>An optional design assistant: describe the mood you want and Claude, ChatGPT or a free local Ollama model designs it, with one-click undo</li>
       <li>22 widgets you can drag right on the desktop, a magnifying dock and a full-screen app drawer</li>
-      <li>3D shapes and models, 360° skies, fields of flowers, particles, fog and lighting</li>
+      <li>3D shapes, trees, rocks, city towers and your own models, 360° skies, flowers, forests, ocean waves and sand dunes, particles, fog and lighting</li>
       <li>Restyles COSMIC's real panel and dock, glass windows and lock screen, with one-click restore</li>
       <li>Interface sounds, ten soundscapes, and your own sound files</li>
       <li>Pauses while the app you're using is maximized or full screen, so games get full speed</li>
@@ -49,7 +49,7 @@
 
   <screenshots>
     <screenshot type="default">
-      <caption>The Golden Meadow look</caption>
+      <caption>The Lavender Dusk look</caption>
       <image>https://raw.githubusercontent.com/Jayswansocool48/aerie/main/docs/screenshots/desktop.png</image>
     </screenshot>
     <screenshot>
@@ -61,8 +61,8 @@
       <image>https://raw.githubusercontent.com/Jayswansocool48/aerie/main/docs/screenshots/looks.png</image>
     </screenshot>
     <screenshot>
-      <caption>The Deep Space look</caption>
-      <image>https://raw.githubusercontent.com/Jayswansocool48/aerie/main/docs/screenshots/space.png</image>
+      <caption>The Midnight City look</caption>
+      <image>https://raw.githubusercontent.com/Jayswansocool48/aerie/main/docs/screenshots/city.png</image>
     </screenshot>
     <screenshot>
       <caption>Restyling COSMIC's real panel and dock</caption>
@@ -102,6 +102,18 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="1.1.0" date="2026-10-13">
+      <description>
+        <p>Eight all-new looks and more to build with.</p>
+        <ul>
+          <li>New looks: Lavender Dusk, Sea Breeze, Winter Pines, Blossom Park, Midnight City, Crystal Nebula, Desert Dunes and Lantern Lake</li>
+          <li>New ground cover: lavender, pine forest, ocean waves and sand dunes</li>
+          <li>New 3D objects: trees, pine trees, rocks, city towers with lit windows and paper lanterns</li>
+          <li>Falling petals particles</li>
+          <li>The design assistant knows about everything new</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.0" date="2026-10-13">
       <description>
         <p>First release of Aerie (formerly Deskscape).</p>

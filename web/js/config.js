@@ -16,6 +16,7 @@ export const uid = () => Math.random().toString(36).slice(2, 10);
 export const SHAPES = {
   cube: 'Cube', sphere: 'Sphere', torus: 'Ring donut', knot: 'Torus knot', icosahedron: 'Crystal',
   octahedron: 'Diamond', dodecahedron: 'Gem', cone: 'Pyramid', cylinder: 'Pillar', ring: 'Halo', capsule: 'Capsule',
+  tree: 'Tree', pine: 'Pine tree', rock: 'Rock', tower: 'City tower', lantern: 'Paper lantern',
   model: 'My 3D model (.glb)',
 };
 export const MATERIALS = {
@@ -27,7 +28,7 @@ export const BACKGROUNDS = {
   panorama: '360° sky or photo (look around)', image: 'Image', video: 'Video (loops)', transparent: 'See-through (show COSMIC wallpaper)',
 };
 export const PARTICLE_STYLES = {
-  dust: 'Floating dust', stars: 'Twinkling stars', fireflies: 'Fireflies', snow: 'Snow', rain: 'Rain', bubbles: 'Bubbles',
+  dust: 'Floating dust', stars: 'Twinkling stars', fireflies: 'Fireflies', snow: 'Snow', rain: 'Rain', bubbles: 'Bubbles', petals: 'Falling petals',
 };
 export const CARD_STYLES = {
   frosted: 'Frosted glass', liquid: 'Liquid glass', solid: 'Solid', outline: 'Outline', neon: 'Neon edge', clear: 'No card',
@@ -126,7 +127,7 @@ export function defaultScene() {
 }
 
 export function defaultConfig() {
-  return normalizeConfig({ ...PRESETS['Golden Meadow'].build(), general: defaultGeneral() });
+  return normalizeConfig({ ...PRESETS['Lavender Dusk'].build(), general: defaultGeneral() });
 }
 
 function defaultGeneral() {

@@ -2,9 +2,9 @@
 
 A living 3D desktop for Pop!_OS (COSMIC), with an AI that helps you design it.
 
-Aerie replaces your wallpaper with a living scene, like Wallpaper Engine: sunflowers swaying to the horizon, aurora over snowy peaks, a neon synthwave grid or a ringed planet in deep space. On top go widgets and an app launcher, the camera drifts with your mouse, and your windows stay on top as usual.
+Aerie replaces your wallpaper with a living scene, like Wallpaper Engine: lavender fields at sunset, a rolling pastel ocean, a snowy pine forest, a rainy city of lit windows or paper lanterns drifting over a lake. On top go widgets and an app launcher, the camera drifts with your mouse, and your windows stay on top as usual.
 
-![Golden Meadow](docs/screenshots/desktop.png)
+![The Lavender Dusk look](docs/screenshots/desktop.png)
 
 *Aerie was called Deskscape. Your setup, saved looks and pictures carry over automatically.*
 
@@ -26,9 +26,9 @@ Open Aerie and a panel appears on the right with five places:
 
 | | |
 | --- | --- |
-| **Looks** | Five hand-made looks — Golden Meadow, Northern Lights, Neon Nights, Deep Space, Zen Garden — and looks you save yourself. |
+| **Looks** | Eight hand-made looks — Lavender Dusk, Sea Breeze, Winter Pines, Blossom Park, Midnight City, Crystal Nebula, Desert Dunes, Lantern Lake — and looks you save yourself. |
 | **Assistant** | Describe what you want ("cozy and warm", "a rainy night in Tokyo", "add a to-do list top left") and the AI designs it. Every change can be undone. |
-| **Customize** | Background, widgets, 3D objects, camera, particles, lighting, fog, fields of flowers and sound — each one a card you open when you need it. |
+| **Customize** | Background, widgets, 3D objects (shapes, trees, rocks, city towers, lanterns or your own models), camera, particles, lighting, fog, ground cover (flowers, grass, pine forest, ocean waves or sand dunes) and sound — each one a card you open when you need it. |
 | **Desktop** | Your real COSMIC panel and dock (layouts, applets, pinned apps, colors), frosted glass, window corners, and the lock screen (picture, message, clock, profile picture). Everything can be restored in one click. |
 | **Settings** | Pausing, sounds (including your own files), updates, privacy, uninstall. |
 
@@ -40,6 +40,8 @@ On the desktop itself:
 - Aerie **pauses** while the app you're using is maximized or anything is full screen, so games get full speed. It wakes as soon as your mouse is on the desktop.
 
 ![The design assistant](docs/screenshots/assistant.png)
+
+![The Midnight City look](docs/screenshots/city.png)
 
 ## The design assistant
 

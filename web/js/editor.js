@@ -387,12 +387,12 @@ export class Editor {
     a.append(toggle('Moving floor grid', sc.floor, 'enabled', () => this.commit(true)));
     if (sc.floor.enabled) a.append(color('Grid color', sc.floor, 'color', () => this.commit()));
     const fld = section(body, 'Ground cover');
-    fld.append(select('Field of', sc.field, 'type', { none: 'Nothing', sunflowers: 'Sunflowers', wildflowers: 'Wildflowers', grass: 'Tall grass' }, () => this.commit(true)));
+    fld.append(select('Field of', sc.field, 'type', { none: 'Nothing', sunflowers: 'Sunflowers', wildflowers: 'Wildflowers', grass: 'Tall grass', lavender: 'Lavender', pines: 'Pine forest', water: 'Ocean waves', dunes: 'Sand dunes' }, () => this.commit(true)));
     if (sc.field.type !== 'none') {
       fld.append(
-        range('How many', sc.field, 'count', 200, 4000, 100, () => this.commit()),
-        range('Wind', sc.field, 'wind', 0, 3, 0.1, () => this.commit(), '×'),
-        color('Ground color', sc.field, 'ground', () => this.commit()),
+        ...(['water', 'dunes'].includes(sc.field.type) ? [] : [range('How many', sc.field, 'count', 200, 4000, 100, () => this.commit())]),
+        range(sc.field.type === 'water' ? 'Waves' : 'Wind', sc.field, 'wind', 0, 3, 0.1, () => this.commit(), '×'),
+        color({ water: 'Water color', dunes: 'Sand color' }[sc.field.type] || 'Ground color', sc.field, 'ground', () => this.commit()),
         el('p', 'hint', 'They sway in the wind and stretch off into the distance. Fewer is faster on older computers.'),
       );
     }
@@ -1483,7 +1483,7 @@ const SUMMARIES = {
   'Particles': 'Dust, stars, snow, rain, fireflies',
   'Lighting': 'Light and color on the 3D objects',
   'Atmosphere': 'Fog and the neon floor grid',
-  'Ground cover': 'Fields of sunflowers, wildflowers or grass',
+  'Ground cover': 'Flowers, grass, pine forest, ocean or sand dunes',
   'Soundscape': 'Background sound for this scene',
   'Taskbar layout': 'One-click layouts for the real panel and dock',
   'Panel': 'The COSMIC panel itself',
